@@ -17,6 +17,12 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# node.js
+#
+node_modules/
+npm-debug.log
+yarn-error.log
+
 # =========================
 # Operating System Files
 # =========================

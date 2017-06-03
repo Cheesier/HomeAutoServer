@@ -1,0 +1,16 @@
+{
+  "name": "HomeAutoServer",
+  "version": "1.0.0",
+  "description": "the node.js server in my home auto thingie",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.15.3",
+    "serialport": "^4.0.7"
+  }
+}
