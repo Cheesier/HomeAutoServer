@@ -5,7 +5,7 @@ const io = require('socket.io')(server);
 server.listen(3000, () => console.log('listening on *:3000'));
 
 var SerialPort = require('serialport')
-var port = new SerialPort('COM3', {baudRate: 9600, autoOpen: true})
+var port = new SerialPort('COM3', {baudRate: 9600, autoOpen: true, parser: SerialPort.parsers.readline('\n')})
 
 
 
@@ -25,6 +25,10 @@ io.on('test', message => {
 
 port.on('open', function() {
   console.log('Connected to Arduino');
+});
+
+port.on('data', data => {
+  console.log("From arduino:",data);
 });
 
 // open errors will be emitted as an error event
