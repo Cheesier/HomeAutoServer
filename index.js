@@ -13,18 +13,26 @@ var port = new SerialPort('COM3', {baudRate: 9600, autoOpen: true, parser: Seria
 // The event will be called when a client is connected.
 io.on('connection', socket => {
   console.log('A client just joined on', socket.id);
-  socket.emit("test");
+  socket.emit('news', 'Hello');
+  socket.on('NEXA', message => {
+    console.log("Nexa command", message);
+    sendMessage(message);
+  });
 });
 
-io.on('test', message => {
-  console.log("test2", message)
-});
-
-
-
+setInterval(() => {
+  if (!port.isOpen()) {
+    console.log("Trying to reconnect to Arduino");
+    port.open();
+  }
+}, 10000);
 
 port.on('open', function() {
   console.log('Connected to Arduino');
+});
+
+port.on('close', function() {
+  console.log('Lost connection to Arduino');
 });
 
 port.on('data', data => {
