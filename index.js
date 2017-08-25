@@ -1,8 +1,9 @@
 const app = require('express')();
 const server = require('http').Server(app);
-const io = require('socket.io')(server);
+//const io = require('socket.io')(server);
+const expressWs = require('express-ws')(app);
 
-server.listen(3000, () => console.log('listening on *:3000'));
+app.listen(3000, () => console.log('listening on *:3000'));
 
 let SerialPort = require('serialport')
 const Readline = SerialPort.parsers.Readline;
@@ -22,15 +23,15 @@ let lights = [
 ];
 
 
-// The event will be called when a client is connected.
-io.on('connection', socket => {
-  console.log('A client just joined on', socket.id);
-  socket.emit('news', 'Hello');
-  socket.on('NEXA', message => {
-    console.log("Nexa command", message);
-    sendMessage(message);
-  });
-});
+// // The event will be called when a client is connected.
+// io.on('connection', socket => {
+//   console.log('A client just joined on', socket.id);
+//   socket.emit('news', 'Hello');
+//   socket.on('NEXA', message => {
+//     console.log("Nexa command", message);
+//     sendMessage(message);
+//   });
+// });
 
 setInterval(() => {
   if (!port.isOpen) {
@@ -63,6 +64,18 @@ parser.on('data', data => {
           }
         });
       });
+      updateWsState();
+      break;
+
+    case 'NEXA-STATUS:':
+      const newState = parts[2].trim() === "ON"? true: false;
+      lights.forEach( (el, index, array) => {
+        if (parts[1] == el.id) {
+          array[index].state = newState;
+          console.log(newState);
+        }
+      });
+      updateWsState();
       break;
   }
 });
@@ -72,9 +85,18 @@ port.on('error', function(err) {
   console.log('Error: ', err.message);
 })
 
+function toggleSwitch(id) {
+  let newState = false;
+  lights.forEach( el => {
+    if (el.id == id) {
+      newState = !el.state;
+    }
+  });
+  setSwitchState(id, newState);
+}
 
 function setSwitchState(id, state) {
-  const cmd = `SET ${id} ` + state ? 'ON': 'OFF';
+  const cmd = `NEXA SET ${id} ${state ? 'ON': 'OFF'}`;
   sendMessage(cmd);
 }
 
@@ -86,6 +108,39 @@ function sendMessage(msg) {
 }
 
 
+
+app.ws('/control', (ws, req) => {
+  ws.on('open', arg => {
+    console.log("Opened websocket: ", arg);
+  });
+
+  ws.on('message', str => {
+    console.log('Got ws message:', str);
+    let msg = JSON.parse(str);
+    switch(msg.type) {
+      case 'STATE_REQUEST':
+        ws.send(JSON.stringify({type: 'STATE_UPDATE', lights}));
+        break;
+
+      case 'TOGGLE':
+        console.log("ws-toggle");
+        toggleSwitch(msg.id);
+        break;
+    }
+    //ws.send(msg);
+  });
+
+  ws.on('close', arg => {
+    console.log("Closed websocket: ", arg);
+  });
+});
+
+let control = expressWs.getWss('/control');
+const updateWsState = () => {
+  control.clients.forEach( client => {
+      client.send(JSON.stringify({type: 'STATE_UPDATE', lights}));
+  });
+};
 
 
 const button = (title, link) => (`<a href='${link}'>${title}</a>`);
@@ -112,21 +167,25 @@ app.get('/reset', function (req, res) {
   });
 });
 
+app.get('/toggle/:id', function (req, res) {
+  toggleSwitch(req.params.id);
+  res.send(buttons);
+});
+
 app.get('/set/:id/:state', function (req, res) {
   if (req.params.id === "all") {
     for (var i = 0; i < lights.length; i++) {
-      sendMessage(`SET ${lights[i].id} ${req.params.state}`)
+      setSwitchState(lights[i].id, req.params.state === "ON");
     }
   }
   else {
-    let cmd = `SET ${req.params.id} ${req.params.state}`;
-    sendMessage(cmd);
+    setSwitchState(req.params.id, req.params.state === "ON");
   }
   res.send(buttons)
 })
 
 app.get('/pair/:id', function (req, res) {
-  sendMessage(`PAIR ${req.params.id}`)
+  sendMessage(`NEXA PAIR ${req.params.id}`)
   res.send(buttons)
 })
 
@@ -140,5 +199,10 @@ stdin.addListener("data", function(d) {
     // with toString() and then trim()
     const msg = d.toString().trim();
     console.log("console: [" + msg + "]");
-    sendMessage(msg);
+    if (msg === "status") {
+      console.log(lights);
+    }
+    else {
+      sendMessage(msg);
+    }
   });
