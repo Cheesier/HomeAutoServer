@@ -17,9 +17,9 @@ const remoteObj = (remoteId, button) => {
 
 let lights = [
   { name: 'Tv',     id: 1337, state: false, remotes: [remoteObj(2471582, 0), remoteObj(2259722, 0)] },
-  { name: 'Window', id: 1338, state: false, remotes: [remoteObj(2471582, 1), remoteObj(2259722, 1)] },
-  { name: 'Bed',    id: 1339, state: false, remotes: [remoteObj(2471582, 2), remoteObj(2259722, 2)] },
-  { name: 'Office', id: 1340, state: false, remotes: [] }
+  { name: 'Fönster', id: 1338, state: false, remotes: [remoteObj(2471582, 1), remoteObj(2259722, 1)] },
+  { name: 'Säng',    id: 1339, state: false, remotes: [remoteObj(2471582, 2), remoteObj(2259722, 2)] },
+  { name: 'Kontor', id: 1340, state: false, remotes: [] }
 ];
 
 
