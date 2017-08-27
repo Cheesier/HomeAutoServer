@@ -144,17 +144,21 @@ const updateWsState = () => {
 
 
 const button = (title, link) => (`<a href='${link}'>${title}</a>`);
-const onoffButtons = id => ( button(`${id} ON`, `/set/${id}/ON`) + " " + button(`${id} OFF`, `/set/${id}/OFF`) );
-const buttons = `${onoffButtons(455)}<br>${onoffButtons(1337)}<br>${onoffButtons(1200)}`;
+const onoffButtons = (title,id) => ( button(`${title} ON`, `/set/${id}/ON`) + " " + button(`${title} OFF`, `/set/${id}/OFF`) );
+const buttons = () => {
+  let output = '<html>';
+  lights.forEach( el => { output += `${el.name}(${el.state}) ${button('ON', `/set/${el.id}/ON`)} ${button('OFF', `/set/${el.id}/OFF`)} ${button('TOGGLE', `/toggle/${el.id}`)}</br>`});
+  return output+'</html>';
+};
 
 app.get('/', function (req, res) {
-  //res.send(buttons)
-  let output = '<html>';
-  lights.forEach( el => {
-    output += `<p>${el.name}(${el.id}): ${el.state ? 'ON': 'OFF'}</p>`;
-  });
-  output += '</html>';
-  res.send(output);
+  res.send(buttons())
+  // let output = '<html>';
+  // lights.forEach( el => {
+  //   output += `<p>${el.name}(${el.id}): ${el.state ? 'ON': 'OFF'}</p>`;
+  // });
+  // output += '</html>';
+  // res.send(output);
 })
 
 // app.get('/', function (req, res) {
@@ -169,7 +173,7 @@ app.get('/reset', function (req, res) {
 
 app.get('/toggle/:id', function (req, res) {
   toggleSwitch(req.params.id);
-  res.send(buttons);
+  res.send(buttons());
 });
 
 app.get('/set/:id/:state', function (req, res) {
@@ -181,12 +185,12 @@ app.get('/set/:id/:state', function (req, res) {
   else {
     setSwitchState(req.params.id, req.params.state === "ON");
   }
-  res.send(buttons)
+  res.send(buttons())
 })
 
 app.get('/pair/:id', function (req, res) {
   sendMessage(`NEXA PAIR ${req.params.id}`)
-  res.send(buttons)
+  res.send(buttons())
 })
 
 
