@@ -107,12 +107,8 @@ function sendMessage(msg) {
   }
 }
 
-
-
 app.ws('/control', (ws, req) => {
-  ws.on('open', arg => {
-    console.log("Opened websocket: ", arg);
-  });
+  ws.send(JSON.stringify({type: 'STATE_UPDATE', lights}));
 
   ws.on('message', str => {
     console.log('Got ws message:', str);
@@ -127,7 +123,6 @@ app.ws('/control', (ws, req) => {
         toggleSwitch(msg.id);
         break;
     }
-    //ws.send(msg);
   });
 
   ws.on('close', arg => {
