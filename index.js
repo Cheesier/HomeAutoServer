@@ -188,6 +188,10 @@ app.get('/pair/:id', function (req, res) {
   res.send(buttons())
 })
 
+app.get('/status', function (req, res) {
+  res.send(JSON.stringify({type: 'STATE_UPDATE', lights}))
+})
+
 
 
 let stdin = process.openStdin();
