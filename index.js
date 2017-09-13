@@ -1,7 +1,7 @@
 const app = require('express')();
 const server = require('http').Server(app);
-//const io = require('socket.io')(server);
 const expressWs = require('express-ws')(app);
+const cron = require('node-cron')
 
 app.listen(3000, () => console.log('listening on *:3000'));
 
@@ -11,27 +11,28 @@ let port = new SerialPort('COM3', {baudRate: 9600, autoOpen: true})
 const parser = new Readline();
 port.pipe(parser);
 
-const remoteObj = (remoteId, button) => {
-  return {remoteId, button};
+let lights = {};
+
+const addNexaLight = (name, id, remotes = []) => {
+  lights[id] = { name, id, proto: 'NEXA', state: false, remotes }
 };
 
-let lights = [
-  { name: 'Tv',     id: 1337, state: false, remotes: [remoteObj(2471582, 0), remoteObj(2259722, 0)] },
-  { name: 'Fönster', id: 1338, state: false, remotes: [remoteObj(2471582, 1), remoteObj(2259722, 1)] },
-  { name: 'Säng',    id: 1339, state: false, remotes: [remoteObj(2471582, 2), remoteObj(2259722, 2)] },
-  { name: 'Kontor', id: 1340, state: false, remotes: [] }
-];
+const nexaRemoteButton = (remoteId, button) => {
+  return { proto: 'NEXA', remoteId, button };
+};
+
+addNexaLight('Tv', 1337, [nexaRemoteButton(2471582, 0), nexaRemoteButton(2259722, 0)]);
+addNexaLight('Fönster', 1338, [nexaRemoteButton(2471582, 1), nexaRemoteButton(2259722, 1)]);
+addNexaLight('Säng', 1339, [nexaRemoteButton(2471582, 2), nexaRemoteButton(2259722, 2)]);
+addNexaLight('Kontor', 1340, []);
+
+// Turn on bed light every mon-fri at 07.00
+// (seconds) min hour date month dayofweek
+let task = cron.schedule('0 7 * * 1-5', () => {
+  setSwitchState(1340, true);
+});
 
 
-// // The event will be called when a client is connected.
-// io.on('connection', socket => {
-//   console.log('A client just joined on', socket.id);
-//   socket.emit('news', 'Hello');
-//   socket.on('NEXA', message => {
-//     console.log("Nexa command", message);
-//     sendMessage(message);
-//   });
-// });
 
 setInterval(() => {
   if (!port.isOpen) {
@@ -56,7 +57,7 @@ parser.on('data', data => {
       const isGroup = parts[3] === "GROUP";
       const state = parts[4].trim() === "ON" ? true : false;
 
-      lights.forEach( (el, index, array) => {
+      Object.values(lights).forEach( (el, index, array) => {
         el.remotes.forEach( remote => {
           if (remote.remoteId == parts[1] && (isGroup || remote.button == parts[2])) {
             array[index].state = state;
@@ -69,12 +70,7 @@ parser.on('data', data => {
 
     case 'NEXA-STATUS:':
       const newState = parts[2].trim() === "ON"? true: false;
-      lights.forEach( (el, index, array) => {
-        if (parts[1] == el.id) {
-          array[index].state = newState;
-          console.log(newState);
-        }
-      });
+      lights[parts[1]].state = newState;
       updateWsState();
       break;
   }
@@ -86,17 +82,12 @@ port.on('error', function(err) {
 })
 
 function toggleSwitch(id) {
-  let newState = false;
-  lights.forEach( el => {
-    if (el.id == id) {
-      newState = !el.state;
-    }
-  });
-  setSwitchState(id, newState);
+  lights[id].state = !lights[id].state;
+  setSwitchState(id, lights[id].state);
 }
 
 function setSwitchState(id, state) {
-  const cmd = `NEXA SET ${id} ${state ? 'ON': 'OFF'}`;
+  const cmd = `${lights[id].proto} SET ${id} ${state ? 'ON': 'OFF'}`;
   sendMessage(cmd);
 }
 
@@ -119,7 +110,6 @@ app.ws('/control', (ws, req) => {
         break;
 
       case 'TOGGLE':
-        console.log("ws-toggle");
         toggleSwitch(msg.id);
         break;
     }
@@ -142,7 +132,7 @@ const button = (title, link) => (`<a href='${link}'>${title}</a>`);
 const onoffButtons = (title,id) => ( button(`${title} ON`, `/set/${id}/ON`) + " " + button(`${title} OFF`, `/set/${id}/OFF`) );
 const buttons = () => {
   let output = '<html>';
-  lights.forEach( el => { output += `${el.name}(${el.state}) ${button('ON', `/set/${el.id}/ON`)} ${button('OFF', `/set/${el.id}/OFF`)} ${button('TOGGLE', `/toggle/${el.id}`)}</br>`});
+  Object.values(lights).forEach( el => { output += `${el.name}(${el.state}) ${button('ON', `/set/${el.id}/ON`)} ${button('OFF', `/set/${el.id}/OFF`)} ${button('TOGGLE', `/toggle/${el.id}`)}</br>`});
   return output+'</html>';
 };
 
@@ -173,9 +163,9 @@ app.get('/toggle/:id', function (req, res) {
 
 app.get('/set/:id/:state', function (req, res) {
   if (req.params.id === "all") {
-    for (var i = 0; i < lights.length; i++) {
-      setSwitchState(lights[i].id, req.params.state === "ON");
-    }
+    Object.values(lights).forEach (el => {
+      setSwitchState(el.id, req.params.state === "ON");
+    });
   }
   else {
     setSwitchState(req.params.id, req.params.state === "ON");
