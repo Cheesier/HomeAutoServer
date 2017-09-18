@@ -29,7 +29,7 @@ addNexaLight('Kontor', 1340, []);
 // Turn on bed light every mon-fri at 07.00
 // (seconds) min hour date month dayofweek
 let task = cron.schedule('0 7 * * 1-5', () => {
-  setSwitchState(1340, true);
+  setSwitchState(1339, true);
 });
 
 
