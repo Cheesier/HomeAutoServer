@@ -21,9 +21,19 @@ const nexaRemoteButton = (remoteId, button) => {
   return { proto: 'NEXA', remoteId, button };
 };
 
-addNexaLight('Tv', 1337, [nexaRemoteButton(2471582, 0), nexaRemoteButton(2259722, 0)]);
-addNexaLight('Fönster', 1338, [nexaRemoteButton(2471582, 1), nexaRemoteButton(2259722, 1)]);
-addNexaLight('Säng', 1339, [nexaRemoteButton(2471582, 2), nexaRemoteButton(2259722, 2)]);
+addNexaLight('Tv', 1337, [
+  nexaRemoteButton(2471582, 0), 
+  nexaRemoteButton(2259722, 0)
+]);
+addNexaLight('Fönster', 1338, [
+  nexaRemoteButton(2471582, 1), 
+  nexaRemoteButton(2259722, 1),
+  nexaRemoteButton(23047482, 10) // Wall switch, right button
+]);
+addNexaLight('Säng', 1339, [
+  nexaRemoteButton(2471582, 2), 
+  nexaRemoteButton(2259722, 2)
+]);
 addNexaLight('Kontor', 1340, []);
 
 // Turn on bed light every mon-fri at 07.00
