@@ -44,9 +44,9 @@ parser.on('data', data => {
 
       Object.values(lights).forEach( (el, index, array) => {
         el.remotes.forEach( remote => {
-          if (remote.remoteId == parts[1] && (isGroup || remote.button == parts[2])) {
+          if (remote.sender == parts[1] && (isGroup || remote.unit == parts[2])) {
             array[index].state = state
-            console.log(`${el.id} ${state ? 'ON':'OFF'}`)
+            console.log(`${el.name} (${el.id}) turned ${state ? 'ON':'OFF'}`)
           }
         })
       })
@@ -67,12 +67,13 @@ port.on('error', function(err) {
 })
 
 function toggleSwitch(id) {
-  lights[id].state = !lights[id].state
-  setSwitchState(id, lights[id].state)
+  console.log('toggle', lights[id])
+  const newState = !lights[id].state
+  setSwitchState(id, newState)
 }
 
 function setSwitchState(id, state) {
-  const cmd = `${lights[id].proto} SET ${id} ${state ? 'ON': 'OFF'}`
+  const cmd = `${lights[id].proto} SET ${lights[id].sender} ${lights[id].unit} ${state ? 'ON': 'OFF'}`
   sendMessage(cmd)
 }
 
