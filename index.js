@@ -77,6 +77,10 @@ function setSwitchState(id, state) {
   sendMessage(cmd)
 }
 
+function nexaSetGroupState(id, state) {
+  sendMessage(`NEXA SET ${id} GROUP ${state?'ON': 'OFF'}`)
+}
+
 function sendMessage(msg) {
   if (port.isOpen) {
     console.log('msg to arduino:', msg)
@@ -149,9 +153,10 @@ app.get('/toggle/:id', function (req, res) {
 
 app.get('/set/:id/:state', function (req, res) {
   if (req.params.id === "all") {
-    Object.values(lights).forEach (el => {
-      setSwitchState(el.id, req.params.state === "ON")
-    })
+    // Object.values(lights).forEach (el => {
+    //   setSwitchState(el.sender, el.unit, req.params.state === "ON")
+    // })
+    nexaSetGroupState(1000, req.params.state === "ON")
   }
   else {
     setSwitchState(req.params.id, req.params.state === "ON")
