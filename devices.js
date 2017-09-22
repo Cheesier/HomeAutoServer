@@ -18,7 +18,9 @@ addNexaLight(lights, 1339, 'Säng', 1000, 2, [
     nexaRemoteButton(2259722, 2)
 ])
 addNexaLight(lights, 1340, 'Kontor', 1000, 3, [])
-addNexaLight(lights, 1341, 'Kökslampa', 1000, 4, [])
+addNexaLight(lights, 1341, 'Kökslampa', 1000, 4, [
+    nexaRemoteButton(23047482, 11) // Wall switch, left button
+])
 
 exports.lights = lights
 //exports.tasks = tasks
