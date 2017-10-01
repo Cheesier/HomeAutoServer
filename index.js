@@ -2,13 +2,15 @@ const app = require('express')()
 const server = require('http').Server(app)
 const expressWs = require('express-ws')(app)
 const cron = require('node-cron')
-let { lights } = require('./devices')
+const config = require('./configuration')
+const { createNexaLight, nexaRemoteButton } = require('./nexa')
+const lights = config.lights
 
-app.listen(3000, () => console.log('listening on *:3000'))
+app.listen(config.port, () => console.log(`listening on *:${config.port}`))
 
 let SerialPort = require('serialport')
 const Readline = SerialPort.parsers.Readline
-let port = new SerialPort('COM3', {baudRate: 9600, autoOpen: true})
+let port = new SerialPort(config.comport, {baudRate: 9600, autoOpen: true})
 const parser = new Readline()
 port.pipe(parser)
 
@@ -183,10 +185,33 @@ stdin.addListener("data", function(d) {
     // with toString() and then trim()
     const msg = d.toString().trim()
     console.log("console: [" + msg + "]")
-    if (msg === "status") {
-      console.log(lights)
-    }
-    else {
-      sendMessage(msg)
+
+    const parts = msg.split(' ')
+    const cmd = parts[0]
+    switch(cmd) {
+      case 'NEXA':
+        sendMessage(msg)
+        break
+      
+      case 'status':
+        console.log(lights)
+        break
+
+      case 'add-nexa-light':
+        if (parts.length != 5) {
+          // parts                     1     2       3       4
+          console.log('add-nexa-light <id> <name> <sender> <unit>')
+          break
+        }
+        config.addLight(createNexaLight(parts[1], parts[2], parseInt(parts[3]), parseInt(parts[4])))
+        break
+      
+      case 'remove-light':
+        if (parts.length != 2) {
+          console.log('remove-light <id>')
+          break
+        }
+        config.removeLight(parts[1])
+        break
     }
   })
