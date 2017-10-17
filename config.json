@@ -1,5 +1,5 @@
 {
-  "ComPort": "COM66",
+  "ComPort": "COM3",
   "WebPort": 3000,
   "lights": {
     "1337": {
