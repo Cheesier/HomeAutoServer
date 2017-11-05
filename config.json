@@ -8,6 +8,7 @@
       "sender": 1510,
       "unit": 0,
       "proto": "NEXA",
+      "dimmer": true,
       "state": false,
       "remotes": [
         {
@@ -63,6 +64,7 @@
       "sender": 1510,
       "unit": 2,
       "proto": "NEXA",
+      "dimmer": true,
       "state": false,
       "remotes": [
         {

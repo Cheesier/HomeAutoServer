@@ -79,6 +79,12 @@ function setSwitchState(id, state) {
   sendMessage(cmd)
 }
 
+function dimLight(id, lightLevel) {
+  console.log('dim', lights[id], lightLevel)
+  const cmd = `${lights[id].proto} DIM ${lights[id].sender} ${lights[id].unit} ${lightLevel}`
+  sendMessage(cmd)
+}
+
 function nexaSetGroupState(id, state) {
   sendMessage(`NEXA SET ${id} GROUP ${state?'ON': 'OFF'}`)
 }
@@ -101,8 +107,23 @@ app.ws('/control', (ws, req) => {
         ws.send(JSON.stringify({type: 'STATE_UPDATE', lights}))
         break
 
+      case 'SET':
+        setSwitchState(msg.id, msg.state)
+        break
+
       case 'TOGGLE':
         toggleSwitch(msg.id)
+        break
+      
+      case 'DIM':
+        lights[msg.id].state = true;
+        dimLight(msg.id, msg.lightLevel)
+        updateWsState()
+        break
+
+      case 'ADD_NEXA_LIGHT':
+        //config.addLight(createNexaLight(msg.id, msg.name, parseInt(msg.sender), parseInt(msg.unit)))
+        console.log("Add nexa light: ",msg.id, msg.name, msg.sender, msg.unit);
         break
     }
   })
@@ -213,5 +234,8 @@ stdin.addListener("data", function(d) {
         }
         config.removeLight(parts[1])
         break
+
+      default:
+        console.log("Unknown command: ", cmd)
     }
   })
