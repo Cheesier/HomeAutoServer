@@ -5,6 +5,7 @@ const cron = require('node-cron')
 const config = require('./configuration')
 const { createNexaLight, nexaRemoteButton } = require('./nexa')
 const lights = config.lights
+const tasks = config.tasks
 
 app.listen(config.port, () => console.log(`listening on *:${config.port}`))
 
@@ -16,10 +17,44 @@ port.pipe(parser)
 
 // Turn on bed light every mon-fri at 07.00
 // (seconds) min hour date month dayofweek
-const bedMorningTask = cron.schedule('0 7 * * 1-5', () => {
-  setSwitchState(1339, true)
-})
+// const bedMorningTask = cron.schedule('0 7 * * 1-5', () => {
+//   setSwitchState(1339, true)
+// })
 
+let cronTasks = []
+
+function setupTasks() {
+  cronTasks.forEach( cronTask => cronTask.destroy())
+  cronTasks = []
+
+  Object.values(tasks).forEach( task => {
+    cronTasks.push(cron.schedule(task.cron, () => {
+      task.lights.forEach( taskLight => {
+        if (typeof taskLight.value === 'number') {
+          dimLight(taskLight.id, taskLight.value)
+        }
+        else if (typeof taskLight.value === 'string') {
+          switch(taskLight.value) {
+            case 'ON':
+            case 'OFF':
+              setSwitchState(taskLight.id, taskLight.value === "ON")
+              break
+            
+            case 'TOGGLE':
+              toggleSwitch(taskLight.id, taskLight.value)
+              break
+            
+            default:
+              console.error("Unknown taskLight value", taskLight.value)
+              break
+          }
+        }
+      })
+    }))
+  })
+}
+
+setupTasks()
 
 setInterval(() => {
   if (!port.isOpen) {
@@ -67,6 +102,30 @@ parser.on('data', data => {
 port.on('error', function(err) {
   console.log('Error: ', err.message)
 })
+
+function createLight(light) {
+  config.addLight(light);
+  lights[light.id] = light;
+}
+
+function removeLight(id) {
+  config.removeLight(id)
+  delete lights[id]
+}
+
+// id, cronstring, { light-id, value }[]
+function addTask(id, cron, lights) {
+  const value = { cron, lights }
+  config.addTask(id, value)
+  tasks[id] = value
+  setupTasks()
+}
+
+function removeTask(id) {
+  config.removeTask(id)
+  delete tasks[id]
+  setupTasks()
+}
 
 function toggleSwitch(id) {
   console.log('toggle', lights[id])
@@ -122,8 +181,9 @@ app.ws('/control', (ws, req) => {
         break
 
       case 'ADD_NEXA_LIGHT':
-        //config.addLight(createNexaLight(msg.id, msg.name, parseInt(msg.sender), parseInt(msg.unit)))
-        console.log("Add nexa light: ",msg.id, msg.name, msg.sender, msg.unit);
+        createLight(createNexaLight(msg.id, msg.name, parseInt(msg.sender), parseInt(msg.unit)))
+        console.log("Add nexa light: ", msg.id, msg.name, msg.sender, msg.unit)
+        updateWsState()
         break
     }
   })
@@ -224,7 +284,8 @@ stdin.addListener("data", function(d) {
           console.log('add-nexa-light <id> <name> <sender> <unit>')
           break
         }
-        config.addLight(createNexaLight(parts[1], parts[2], parseInt(parts[3]), parseInt(parts[4])))
+        createLight(createNexaLight(parts[1], parts[2], parseInt(parts[3]), parseInt(parts[4])))
+        updateWsState()
         break
       
       case 'remove-light':
@@ -232,7 +293,30 @@ stdin.addListener("data", function(d) {
           console.log('remove-light <id>')
           break
         }
-        config.removeLight(parts[1])
+        removeLight(parts[1])
+        updateWsState()
+        break
+      
+      case 'add-task':
+        const cronSplit = msg.split(`'`);
+        if (parts.length < 5 || cronSplit.length != 3) {
+          // parts
+          console.log(`add-task <id> '<cron>' <light-id> <light-val>`)
+          break
+        }
+        const restSplit = cronSplit[2].split(' ');
+        const lv = restSplit[2]
+        const lightValue = !isNaN(parseInt(lv)) ? parseInt(lv) : lv
+        const lightId = restSplit[1];
+        console.log(`adding task with cron '${cronSplit[1]}', light-id ${lightId} value `, lightValue)
+        addTask(parts[1], cronSplit[1], [{ id: lightId, value: lightValue }])
+        break
+
+      case 'remove-task':
+        if (parts.length != 2) {
+          console.log('remove-task <id>')
+        }
+        removeTask(parts[1])
         break
 
       default:

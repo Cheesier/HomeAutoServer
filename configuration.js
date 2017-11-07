@@ -4,6 +4,7 @@ nconf.use('file', { file: './config.json' })
 nconf.load()
 
 exports.lights = nconf.get('lights')
+exports.tasks = nconf.get('tasks')
 
 exports.comport = nconf.get('ComPort')
 exports.port = nconf.get('WebPort')
@@ -24,18 +25,38 @@ function removeLight(id) {
   return save()
 }
 
-function save() {
-  nconf.save( err => {
-    if (err) {
-      console.log('config save error:', err.message)
+// id: {
+  //   cron: "cron string",
+  //   lights: [{ id: 1337, value: true}, { id: 1338, value: 14}]
+  // }
+  // value is one of number, "ON", "OFF", "TOGGLE"
+  
+  function addTask(id, task) {
+    nconf.set(`tasks:${id}`, task)
+    console.log(`Added task: ${task.cron}`)
+    return save()
+  }
+  
+  function removeTask(id) {
+    nconf.set(`tasks:${id}`, undefined)
+    console.log(`removed task id: ${id}`)
+    return save()
+  }
+  
+  function save() {
+    nconf.save( err => {
+      if (err) {
+        console.log('config save error:', err.message)
         return false
-    }
-    console.log('saved config')
-    return true
-  })
-}
-
+      }
+      console.log('saved config')
+      return true
+    })
+  }
+  
 exports.load = load
 exports.addLight = addLight
 exports.removeLight = removeLight
+exports.addTask = addTask
+exports.removeTask = removeTask
 exports.save = save
