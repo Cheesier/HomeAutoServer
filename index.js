@@ -115,7 +115,7 @@ function removeLight(id) {
 
 // id, cronstring, { light-id, value }[]
 function addTask(id, cron, lights) {
-  const value = { cron, lights }
+  const value = { id, cron, lights }
   config.addTask(id, value)
   tasks[id] = value
   setupTasks()
@@ -156,14 +156,14 @@ function sendMessage(msg) {
 }
 
 app.ws('/control', (ws, req) => {
-  ws.send(JSON.stringify({type: 'STATE_UPDATE', lights}))
+  ws.send(JSON.stringify({ type: 'STATE_UPDATE', lights, tasks }))
 
   ws.on('message', str => {
     console.log('Got ws message:', str)
     let msg = JSON.parse(str)
     switch(msg.type) {
       case 'STATE_REQUEST':
-        ws.send(JSON.stringify({type: 'STATE_UPDATE', lights}))
+        ws.send(JSON.stringify({ type: 'STATE_UPDATE', lights, tasks }))
         break
 
       case 'SET':
@@ -196,7 +196,7 @@ app.ws('/control', (ws, req) => {
 let control = expressWs.getWss('/control')
 const updateWsState = () => {
   control.clients.forEach( client => {
-      client.send(JSON.stringify({type: 'STATE_UPDATE', lights}))
+      client.send(JSON.stringify({ type: 'STATE_UPDATE', lights, tasks }))
   })
 }
 
@@ -253,7 +253,7 @@ app.get('/pair/:id', function (req, res) {
 })
 
 app.get('/status', function (req, res) {
-  res.send(JSON.stringify({type: 'STATE_UPDATE', lights}))
+  res.send(JSON.stringify({ type: 'STATE_UPDATE', lights, tasks }))
 })
 
 
