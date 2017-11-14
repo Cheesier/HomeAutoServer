@@ -185,6 +185,24 @@ app.ws('/control', (ws, req) => {
         console.log("Add nexa light: ", msg.id, msg.name, msg.sender, msg.unit)
         updateWsState()
         break
+
+      case 'REMOVE_LIGHT':
+        console.log("Should remove light", msg.id)
+        //removeLight(msg.id)
+        updateWsState()
+        break
+      
+      case 'ADD_TASK':
+        console.log("Should add task", msg.id, msg.cron, msg.lights)
+        addTask(msg.id, msg.cron, msg.lights)
+        updateWsState()
+        break
+      
+      case 'REMOVE_TASK':
+        console.log("Should remove task", msg.id)
+        removeTask(msg.id)
+        updateWsState()
+        break
     }
   })
 
