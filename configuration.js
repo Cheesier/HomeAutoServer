@@ -42,6 +42,10 @@ function removeLight(id) {
     console.log(`removed task id: ${id}`)
     return save()
   }
+
+  function updateTask(task) {
+    addTask(task.id, task)
+  }
   
   function save() {
     nconf.save( err => {
@@ -59,4 +63,5 @@ exports.addLight = addLight
 exports.removeLight = removeLight
 exports.addTask = addTask
 exports.removeTask = removeTask
+exports.updateTask = updateTask
 exports.save = save

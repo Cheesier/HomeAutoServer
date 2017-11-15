@@ -123,6 +123,7 @@
   "tasks": {
     "100": {
       "id": "100",
+      "enabled": false,
       "cron": "28 6 * * 1-5",
       "lights": [
         {
@@ -133,6 +134,7 @@
     },
     "101": {
       "id": "101",
+      "enabled": false,
       "cron": "30 6 * * 1-5",
       "lights": [
         {

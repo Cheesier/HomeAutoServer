@@ -1,7 +1,7 @@
 const app = require('express')()
 const server = require('http').Server(app)
 const expressWs = require('express-ws')(app)
-const cron = require('node-cron')
+const nodeCron = require('node-cron')
 const config = require('./configuration')
 const { createNexaLight, nexaRemoteButton } = require('./nexa')
 const lights = config.lights
@@ -27,31 +27,35 @@ function setupTasks() {
   cronTasks.forEach( cronTask => cronTask.destroy())
   cronTasks = []
 
-  Object.values(tasks).forEach( task => {
-    cronTasks.push(cron.schedule(task.cron, () => {
-      task.lights.forEach( taskLight => {
-        if (typeof taskLight.value === 'number') {
-          dimLight(taskLight.id, taskLight.value)
-        }
-        else if (typeof taskLight.value === 'string') {
-          switch(taskLight.value) {
-            case 'ON':
-            case 'OFF':
-              setSwitchState(taskLight.id, taskLight.value === "ON")
-              break
-            
-            case 'TOGGLE':
-              toggleSwitch(taskLight.id, taskLight.value)
-              break
-            
-            default:
-              console.error("Unknown taskLight value", taskLight.value)
-              break
+  Object.values(tasks)
+    .filter( task => task.enabled )
+    .forEach( task => {
+      console.log("activating task", task.id)
+      cronTasks.push(nodeCron.schedule(task.cron, () => {
+        task.lights.forEach( taskLight => {
+          if (typeof taskLight.value === 'number') {
+            dimLight(taskLight.id, taskLight.value)
           }
-        }
-      })
-    }))
-  })
+          else if (typeof taskLight.value === 'string') {
+            switch(taskLight.value) {
+              case 'ON':
+              case 'OFF':
+                setSwitchState(taskLight.id, taskLight.value === "ON")
+                break
+              
+              case 'TOGGLE':
+                toggleSwitch(taskLight.id, taskLight.value)
+                break
+              
+              default:
+                console.error("Unknown taskLight value", taskLight.value)
+                break
+            }
+          }
+        })
+      }))
+    }
+  )
 }
 
 setupTasks()
@@ -104,8 +108,14 @@ port.on('error', function(err) {
 })
 
 function createLight(light) {
-  config.addLight(light);
-  lights[light.id] = light;
+  config.addLight(light)
+  lights[light.id] = light
+}
+
+function pairLight(id) {
+  if (lights[id].proto === 'NEXA') {
+    sendMessage(`NEXA PAIR ${id}`)
+  }
 }
 
 function removeLight(id) {
@@ -115,9 +125,20 @@ function removeLight(id) {
 
 // id, cronstring, { light-id, value }[]
 function addTask(id, cron, lights) {
-  const value = { id, cron, lights }
+  if (!nodeCron.validate(cron)) {
+    console.log("tried to add invalid cron string: ", cron)
+    return
+  }
+  const value = { id, cron, lights, enabled: true }
   config.addTask(id, value)
   tasks[id] = value
+  setupTasks()
+}
+
+function toggleTaskEnabled(id) {
+  const task = tasks[id]
+  task.enabled = !task.enabled
+  config.updateTask(task)
   setupTasks()
 }
 
@@ -186,6 +207,11 @@ app.ws('/control', (ws, req) => {
         updateWsState()
         break
 
+      case 'PAIR_LIGHT':
+        console.log('Pair light: ', msg.id)
+        pairLight(msg.id)
+        break
+
       case 'REMOVE_LIGHT':
         console.log("Should remove light", msg.id)
         //removeLight(msg.id)
@@ -195,6 +221,12 @@ app.ws('/control', (ws, req) => {
       case 'ADD_TASK':
         console.log("Should add task", msg.id, msg.cron, msg.lights)
         addTask(msg.id, msg.cron, msg.lights)
+        updateWsState()
+        break
+
+      case 'TOGGLE_TASK_ENABLED':
+        console.log("Should toggle task enable state", msg.id)
+        toggleTaskEnabled(msg.id)
         updateWsState()
         break
       
@@ -266,7 +298,7 @@ app.get('/set/:id/:state', function (req, res) {
 })
 
 app.get('/pair/:id', function (req, res) {
-  sendMessage(`NEXA PAIR ${req.params.id}`)
+  pairLight(req.params.id)
   res.send(buttons())
 })
 
