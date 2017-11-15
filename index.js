@@ -214,7 +214,7 @@ app.ws('/control', (ws, req) => {
 
       case 'REMOVE_LIGHT':
         console.log("Should remove light", msg.id)
-        //removeLight(msg.id)
+        removeLight(msg.id)
         updateWsState()
         break
       
