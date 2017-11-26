@@ -3,8 +3,8 @@ const nconf = require('nconf')
 nconf.use('file', { file: './config.json' })
 nconf.load()
 
-exports.lights = nconf.get('lights')
-exports.tasks = nconf.get('tasks')
+exports.lights = JSON.parse(JSON.stringify(nconf.get('lights')))
+exports.tasks = JSON.parse(JSON.stringify(nconf.get('tasks')))
 
 exports.comport = nconf.get('ComPort')
 exports.port = nconf.get('WebPort')
@@ -17,6 +17,11 @@ function addLight(light) {
   nconf.set(`lights:${light.id}`, light)
   console.log(`Saved light '${light.name}'`)
   return save()
+}
+
+function updateLight(light) {
+  const saneLight = { ...light, state: false }
+  return addLight(saneLight)
 }
 
 function removeLight(id) {
@@ -33,7 +38,7 @@ function removeLight(id) {
   
   function addTask(id, task) {
     nconf.set(`tasks:${id}`, task)
-    console.log(`Added task: ${task.cron}`)
+    console.log(`Saved task: ${task.cron}`)
     return save()
   }
   
@@ -44,7 +49,7 @@ function removeLight(id) {
   }
 
   function updateTask(task) {
-    addTask(task.id, task)
+    return addTask(task.id, task)
   }
   
   function save() {

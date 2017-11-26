@@ -202,8 +202,8 @@ app.ws('/control', (ws, req) => {
         break
 
       case 'ADD_NEXA_LIGHT':
-        createLight(createNexaLight(msg.id, msg.name, parseInt(msg.sender), parseInt(msg.unit)))
-        console.log("Add nexa light: ", msg.id, msg.name, msg.sender, msg.unit)
+        createLight(createNexaLight(msg.id, msg.name, parseInt(msg.sender), parseInt(msg.unit), msg.dimmer))
+        console.log("Add nexa light: ", msg.id, msg.name, msg.sender, msg.unit, msg.dimmer)
         updateWsState()
         break
 
@@ -329,12 +329,13 @@ stdin.addListener("data", function(d) {
         break
 
       case 'add-nexa-light':
-        if (parts.length != 5) {
-          // parts                     1     2       3       4
-          console.log('add-nexa-light <id> <name> <sender> <unit>')
+        if (parts.length < 5) {
+          // parts                     1     2       3       4      5
+          console.log('add-nexa-light <id> <name> <sender> <unit> [dimmer]')
           break
         }
-        createLight(createNexaLight(parts[1], parts[2], parseInt(parts[3]), parseInt(parts[4])))
+        const dimmer = parts.length >= 6 ? parts[5] === "true" : false
+        createLight(createNexaLight(parts[1], parts[2], parseInt(parts[3]), parseInt(parts[4]), dimmer))
         updateWsState()
         break
       
