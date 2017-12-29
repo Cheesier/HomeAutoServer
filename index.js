@@ -114,7 +114,7 @@ function createLight(light) {
 
 function pairLight(id) {
   if (lights[id] && lights[id].proto === 'NEXA') {
-    sendMessage(`NEXA PAIR ${id}`)
+    sendMessage(`NEXA PAIR ${lights[id].sender} ${lights[id].unit}`)
   }
 }
 
