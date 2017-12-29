@@ -108,34 +108,40 @@ port.on('error', function(err) {
 })
 
 function createLight(light) {
-  config.addLight(light)
-  lights[light.id] = light
+  const createdLight = config.addLight(light)
+  lights[createdLight.id] = createdLight
 }
 
 function pairLight(id) {
-  if (lights[id].proto === 'NEXA') {
+  if (lights[id] && lights[id].proto === 'NEXA') {
     sendMessage(`NEXA PAIR ${id}`)
   }
 }
 
 function removeLight(id) {
+  if (!lights[id]) {
+    return
+  }
   config.removeLight(id)
   delete lights[id]
 }
 
 // id, cronstring, { light-id, value }[]
-function addTask(id, cron, lights) {
+function addTask(name, cron, lights) {
   if (!nodeCron.validate(cron)) {
     console.log("tried to add invalid cron string: ", cron)
     return
   }
-  const value = { id, cron, lights, enabled: true }
-  config.addTask(id, value)
-  tasks[id] = value
+  const value = { name, cron, lights, enabled: true }
+  const resultTask = config.addTask(value)
+  tasks[resultTask.id] = resultTask
   setupTasks()
 }
 
 function toggleTaskEnabled(id) {
+  if (!tasks[id]) {
+    return
+  }
   const task = tasks[id]
   task.enabled = !task.enabled
   config.updateTask(task)
@@ -143,23 +149,35 @@ function toggleTaskEnabled(id) {
 }
 
 function removeTask(id) {
+  if (!tasks[id]) {
+    return
+  }
   config.removeTask(id)
   delete tasks[id]
   setupTasks()
 }
 
 function toggleSwitch(id) {
+  if (!lights[id]) {
+    return
+  }
   console.log('toggle', lights[id])
   const newState = !lights[id].state
   setSwitchState(id, newState)
 }
 
 function setSwitchState(id, state) {
+  if (!lights[id]) {
+    return
+  }
   const cmd = `${lights[id].proto} SET ${lights[id].sender} ${lights[id].unit} ${state ? 'ON': 'OFF'}`
   sendMessage(cmd)
 }
 
 function dimLight(id, lightLevel) {
+  if (!lights[id]) {
+    return
+  }
   console.log('dim', lights[id], lightLevel)
   const cmd = `${lights[id].proto} DIM ${lights[id].sender} ${lights[id].unit} ${lightLevel}`
   sendMessage(cmd)
@@ -202,8 +220,8 @@ app.ws('/control', (ws, req) => {
         break
 
       case 'ADD_NEXA_LIGHT':
-        createLight(createNexaLight(msg.id, msg.name, parseInt(msg.sender), parseInt(msg.unit), msg.dimmer))
-        console.log("Add nexa light: ", msg.id, msg.name, msg.sender, msg.unit, msg.dimmer)
+        createLight(createNexaLight(msg.name, parseInt(msg.sender), parseInt(msg.unit), msg.dimmer))
+        console.log("Add nexa light: ", msg.name, msg.sender, msg.unit, msg.dimmer)
         updateWsState()
         break
 
@@ -219,8 +237,8 @@ app.ws('/control', (ws, req) => {
         break
       
       case 'ADD_TASK':
-        console.log("Should add task", msg.id, msg.cron, msg.lights)
-        addTask(msg.id, msg.cron, msg.lights)
+        console.log("Should add task", msg.name, msg.cron, msg.lights)
+        addTask(msg.name, msg.cron, msg.lights)
         updateWsState()
         break
 
@@ -329,13 +347,13 @@ stdin.addListener("data", function(d) {
         break
 
       case 'add-nexa-light':
-        if (parts.length < 5) {
-          // parts                     1     2       3       4      5
-          console.log('add-nexa-light <id> <name> <sender> <unit> [dimmer]')
+        if (parts.length < 4) {
+          // parts                       1      2       3       4
+          console.log('add-nexa-light <name> <sender> <unit> [dimmer]')
           break
         }
-        const dimmer = parts.length >= 6 ? parts[5] === "true" : false
-        createLight(createNexaLight(parts[1], parts[2], parseInt(parts[3]), parseInt(parts[4]), dimmer))
+        const dimmer = parts.length >= 6 ? parts[4] === "true" : false
+        createLight(createNexaLight(parts[1], parseInt(parts[2]), parseInt(parts[3]), dimmer))
         updateWsState()
         break
       
@@ -350,17 +368,16 @@ stdin.addListener("data", function(d) {
       
       case 'add-task':
         const cronSplit = msg.split(`'`);
-        if (parts.length < 5 || cronSplit.length != 3) {
+        if (parts.length < 4 || cronSplit.length != 3) {
           // parts
-          console.log(`add-task <id> '<cron>' <light-id> <light-val>`)
+          console.log(`add-task '<cron>' <light-id> <light-val> <label>`)
           break
         }
         const restSplit = cronSplit[2].split(' ');
-        const lv = restSplit[2]
+        const lv = restSplit[1]
         const lightValue = !isNaN(parseInt(lv)) ? parseInt(lv) : lv
-        const lightId = restSplit[1];
         console.log(`adding task with cron '${cronSplit[1]}', light-id ${lightId} value `, lightValue)
-        addTask(parts[1], cronSplit[1], [{ id: lightId, value: lightValue }])
+        addTask(restSplit[2], cronSplit[1], [{ value: lightValue }])
         break
 
       case 'remove-task':

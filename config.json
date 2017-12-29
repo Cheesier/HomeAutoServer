@@ -2,6 +2,38 @@
   "ComPort": "COM3",
   "WebPort": 3000,
   "lights": {
+    "9": {
+      "name": "Stjärna",
+      "sender": 1510,
+      "unit": 14,
+      "proto": "NEXA",
+      "dimmer": false,
+      "state": false,
+      "remotes": [
+        {
+          "proto": "NEXA",
+          "sender": 1510,
+          "unit": 14
+        }
+      ],
+      "id": 9
+    },
+    "12": {
+      "name": "gran",
+      "sender": 1510,
+      "unit": 9,
+      "proto": "NEXA",
+      "dimmer": false,
+      "state": false,
+      "remotes": [
+        {
+          "proto": "NEXA",
+          "sender": 1510,
+          "unit": 9
+        }
+      ],
+      "id": 12
+    },
     "1337": {
       "id": 1337,
       "name": "Tv",
@@ -121,27 +153,39 @@
     }
   },
   "tasks": {
-    "100": {
-      "id": "100",
-      "enabled": false,
-      "cron": "28 6 * * 1-5",
+    "5": {
+      "name": "Morgon",
+      "cron": "55 6 * * 1,2,3,4,5",
       "lights": [
         {
-          "id": "1339",
-          "value": 0
-        }
-      ]
-    },
-    "101": {
-      "id": "101",
-      "enabled": false,
-      "cron": "30 6 * * 1-5",
-      "lights": [
-        {
-          "id": "1339",
+          "id": 1339,
           "value": 15
         }
-      ]
+      ],
+      "enabled": true,
+      "id": 5
+    },
+    "10": {
+      "id": 10
+    },
+    "11": {
+      "id": 11
+    },
+    "13": {
+      "id": 13
+    },
+    "14": {
+      "id": 14
+    },
+    "15": {
+      "id": 15
+    },
+    "16": {
+      "id": 16
+    },
+    "17": {
+      "id": 17
     }
-  }
+  },
+  "nextAvailableId": 18
 }

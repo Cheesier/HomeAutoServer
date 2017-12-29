@@ -1,6 +1,6 @@
-const createNexaLight = (id, name, sender, unit, remotes = [], dimmer = false) => {
+const createNexaLight = (name, sender, unit, dimmer = false, remotes = []) => {
     remotes.push(nexaRemoteButton(sender, unit))
-    return { id, name, sender, unit, proto: 'NEXA', dimmer, state: false, remotes }
+    return { name, sender, unit, proto: 'NEXA', dimmer, state: false, remotes }
 }
 
 const nexaRemoteButton = (sender, unit) => {

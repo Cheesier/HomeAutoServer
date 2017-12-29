@@ -9,14 +9,19 @@ exports.tasks = JSON.parse(JSON.stringify(nconf.get('tasks')))
 exports.comport = nconf.get('ComPort')
 exports.port = nconf.get('WebPort')
 
+let nextAvailableId = nconf.get('nextAvailableId') || 1
+
 function load() {
   nconf.load()
 }
 
 function addLight(light) {
-  nconf.set(`lights:${light.id}`, light)
+  const id = nextAvailableId++
+  const resultLight = { ...light, id }
+  nconf.set(`lights:${id}`, resultLight)
   console.log(`Saved light '${light.name}'`)
-  return save()
+  save()
+  return resultLight
 }
 
 function updateLight(light) {
@@ -36,10 +41,13 @@ function removeLight(id) {
   // }
   // value is one of number, "ON", "OFF", "TOGGLE"
   
-  function addTask(id, task) {
-    nconf.set(`tasks:${id}`, task)
+  function addTask(task) {
+    const id = nextAvailableId++
+    const resultLight = { ...task, id }
+    nconf.set(`tasks:${id}`, { ...task, id })
     console.log(`Saved task: ${task.cron}`)
-    return save()
+    save()
+    return resultLight
   }
   
   function removeTask(id) {
@@ -53,6 +61,7 @@ function removeLight(id) {
   }
   
   function save() {
+    nconf.set('nextAvailableId', nextAvailableId)
     nconf.save( err => {
       if (err) {
         console.log('config save error:', err.message)
