@@ -6,6 +6,7 @@ const config = require('./configuration')
 const { createNexaLight, nexaRemoteButton } = require('./nexa')
 const lights = config.lights
 const tasks = config.tasks
+const { rateLimit } = require('./utils')
 
 app.listen(config.port, () => console.log(`listening on *:${config.port}`))
 
@@ -107,6 +108,12 @@ port.on('error', function(err) {
   console.log('Error: ', err.message)
 })
 
+function resetSerial() {
+  port.close(() => {
+    port.open();
+  });
+}
+
 function createLight(light) {
   const createdLight = config.addLight(light)
   lights[createdLight.id] = createdLight
@@ -174,6 +181,12 @@ function setSwitchState(id, state) {
   sendMessage(cmd)
 }
 
+function setAllSwitches(state) {
+  Object.keys(lights).forEach(light => {
+    setSwitchState(light, state)
+  })
+}
+
 function dimLight(id, lightLevel) {
   if (!lights[id]) {
     return
@@ -187,12 +200,14 @@ function nexaSetGroupState(id, state) {
   sendMessage(`NEXA SET ${id} GROUP ${state?'ON': 'OFF'}`)
 }
 
-function sendMessage(msg) {
+function sendMessageInternal(msg) {
   if (port.isOpen) {
     console.log('msg to arduino:', msg)
     port.write(msg+'\n')
   }
 }
+
+const sendMessage = rateLimit(sendMessageInternal, 200)
 
 app.ws('/control', (ws, req) => {
   ws.send(JSON.stringify({ type: 'STATE_UPDATE', lights, tasks }))
@@ -204,6 +219,14 @@ app.ws('/control', (ws, req) => {
       case 'STATE_REQUEST':
         ws.send(JSON.stringify({ type: 'STATE_UPDATE', lights, tasks }))
         break
+
+      case 'RESET_SERIAL':
+        resetSerial();
+        break;
+
+      case 'SET_ALL':
+        setAllSwitches(msg.state)
+        break;
 
       case 'SET':
         setSwitchState(msg.id, msg.state)
