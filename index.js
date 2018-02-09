@@ -13,58 +13,52 @@ app.listen(config.port, () => console.log(`listening on *:${config.port}`))
 
 let SerialPort = require('serialport')
 const Readline = SerialPort.parsers.Readline
-let port = new SerialPort(config.comport, {baudRate: 9600, autoOpen: true})
+let port = new SerialPort(config.comport, { baudRate: 9600, autoOpen: true })
 const parser = new Readline()
 port.pipe(parser)
-
-// Turn on bed light every mon-fri at 07.00
-// (seconds) min hour date month dayofweek
-// const bedMorningTask = cron.schedule('0 7 * * 1-5', () => {
-//   setSwitchState(1339, true)
-// })
 
 let cronTasks = []
 
 function setupTasks() {
-  cronTasks.forEach( cronTask => cronTask.destroy())
+  cronTasks.forEach(cronTask => cronTask.destroy())
   cronTasks = []
 
   Object.values(tasks)
-    .filter( task => task.enabled )
-    .forEach( task => {
-      console.log("activating task", task.id)
-      cronTasks.push(nodeCron.schedule(task.cron, () => {
-        task.lights.forEach( taskLight => {
-          if (typeof taskLight.value === 'number') {
-            dimLight(taskLight.id, taskLight.value)
-          }
-          else if (typeof taskLight.value === 'string') {
-            switch(taskLight.value) {
-              case 'ON':
-              case 'OFF':
-                setSwitchState(taskLight.id, taskLight.value === "ON")
-                break
-              
-              case 'TOGGLE':
-                toggleSwitch(taskLight.id, taskLight.value)
-                break
-              
-              default:
-                console.error("Unknown taskLight value", taskLight.value)
-                break
+    .filter(task => task.enabled)
+    .forEach(task => {
+      console.log('activating task', task.id)
+      cronTasks.push(
+        nodeCron.schedule(task.cron, () => {
+          task.lights.forEach(taskLight => {
+            if (typeof taskLight.value === 'number') {
+              dimLight(taskLight.id, taskLight.value)
+            } else if (typeof taskLight.value === 'string') {
+              switch (taskLight.value) {
+                case 'ON':
+                case 'OFF':
+                  setSwitchState(taskLight.id, taskLight.value === 'ON')
+                  break
+
+                case 'TOGGLE':
+                  toggleSwitch(taskLight.id, taskLight.value)
+                  break
+
+                default:
+                  console.error('Unknown taskLight value', taskLight.value)
+                  break
+              }
             }
-          }
+          })
         })
-      }))
-    }
-  )
+      )
+    })
 }
 
 setupTasks()
 
 setInterval(() => {
   if (!port.isOpen) {
-    console.log("Trying to reconnect to Arduino")
+    console.log('Trying to reconnect to Arduino')
     port.open()
   }
 }, 10000)
@@ -78,19 +72,24 @@ port.on('close', function() {
 })
 
 parser.on('data', data => {
-  console.log("From arduino:",data)
+  console.log('From arduino:', data)
   const parts = data.split(' ')
-  switch(parts[0]) {
+  switch (parts[0]) {
     case 'NEXA-REMOTE:':
-      const isGroup = parts[3] === "GROUP"
-      const state = parts[4].trim() === "ON" ? true : false
+      const isGroup = parts[3] === 'GROUP'
+      const state = parts[4].trim() === 'ON' ? true : false
 
-      Object.values(lights).forEach( (el, index, array) => {
+      Object.values(lights).forEach((el, index, array) => {
         if (el.remotes) {
           el.remotes.forEach(remote => {
-            if (remote.sender == parts[1] && (isGroup || remote.unit == parts[2])) {
+            if (
+              remote.sender == parts[1] &&
+              (isGroup || remote.unit == parts[2])
+            ) {
               array[index].state = state
-              console.log(`${el.name} (${el.id}) turned ${state ? 'ON' : 'OFF'}`)
+              console.log(
+                `${el.name} (${el.id}) turned ${state ? 'ON' : 'OFF'}`
+              )
             }
           })
         }
@@ -99,7 +98,7 @@ parser.on('data', data => {
       break
 
     case 'NEXA-STATUS:':
-      const newState = parts[2].trim() === "ON"? true: false
+      const newState = parts[2].trim() === 'ON' ? true : false
       lights[parts[1]].state = newState
       updateWsState()
       break
@@ -113,8 +112,8 @@ port.on('error', function(err) {
 
 function resetSerial() {
   port.close(() => {
-    port.open();
-  });
+    port.open()
+  })
 }
 
 function createLight(light) {
@@ -139,7 +138,7 @@ function removeLight(id) {
 // id, cronstring, { light-id, value }[]
 function addTask(name, cron, lights) {
   if (!nodeCron.validate(cron)) {
-    console.log("tried to add invalid cron string: ", cron)
+    console.log('tried to add invalid cron string: ', cron)
     return
   }
   const value = { name, cron, lights, enabled: true }
@@ -181,13 +180,14 @@ function setSwitchState(id, state) {
   if (!light) {
     return
   }
-  if (light.proto === "NEXA") {
-    const cmd = `${light.proto} SET ${light.sender} ${light.unit} ${state ? 'ON': 'OFF'}`
+  if (light.proto === 'NEXA') {
+    const cmd = `${light.proto} SET ${light.sender} ${light.unit} ${
+      state ? 'ON' : 'OFF'
+    }`
     sendMessage(cmd)
-  }
-  else if (light.proto === "ANSLUTA") {
+  } else if (light.proto === 'ANSLUTA') {
     const cmd = `${light.proto} SET ${state ? '2' : '1'}`
-    lights[id].state = state;
+    lights[id].state = state
     updateWsState()
     sendMessage(cmd)
   }
@@ -204,12 +204,11 @@ function dimLight(id, lightLevel) {
   if (!light) {
     return
   }
-  if (light.proto === "NEXA") {
+  if (light.proto === 'NEXA') {
     console.log('dim NEXA', light, lightLevel)
     const cmd = `${light.proto} DIM ${light.sender} ${light.unit} ${lightLevel}`
     sendMessage(cmd)
-  }
-  else if (light.proto === "ANSLUTA") {
+  } else if (light.proto === 'ANSLUTA') {
     console.log('dim ANSLUTA', light, lightLevel)
     const cmd = `${light.proto} SET ${lightLevel}`
     lights[id].state = lightLevel >= 2
@@ -219,13 +218,13 @@ function dimLight(id, lightLevel) {
 }
 
 function nexaSetGroupState(id, state) {
-  sendMessage(`NEXA SET ${id} GROUP ${state?'ON': 'OFF'}`)
+  sendMessage(`NEXA SET ${id} GROUP ${state ? 'ON' : 'OFF'}`)
 }
 
 function sendMessageInternal(msg) {
   if (port.isOpen) {
     console.log('msg to arduino:', msg)
-    port.write(msg+'\n')
+    port.write(msg + '\n')
   }
 }
 
@@ -237,18 +236,18 @@ app.ws('/control', (ws, req) => {
   ws.on('message', str => {
     console.log('Got ws message:', str)
     let msg = JSON.parse(str)
-    switch(msg.type) {
+    switch (msg.type) {
       case 'STATE_REQUEST':
         ws.send(JSON.stringify({ type: 'STATE_UPDATE', lights, tasks }))
         break
 
       case 'RESET_SERIAL':
-        resetSerial();
-        break;
+        resetSerial()
+        break
 
       case 'SET_ALL':
         setAllSwitches(msg.state)
-        break;
+        break
 
       case 'SET':
         setSwitchState(msg.id, msg.state)
@@ -257,24 +256,37 @@ app.ws('/control', (ws, req) => {
       case 'TOGGLE':
         toggleSwitch(msg.id)
         break
-      
+
       case 'DIM':
-        lights[msg.id].state = true;
+        lights[msg.id].state = true
         dimLight(msg.id, msg.lightLevel)
         updateWsState()
         break
 
       case 'ADD_NEXA_LIGHT':
-        createLight(createNexaLight(msg.name, parseInt(msg.sender), parseInt(msg.unit), msg.dimmer))
-        console.log("Add nexa light: ", msg.name, msg.sender, msg.unit, msg.dimmer)
+        createLight(
+          createNexaLight(
+            msg.name,
+            parseInt(msg.sender),
+            parseInt(msg.unit),
+            msg.dimmer
+          )
+        )
+        console.log(
+          'Add nexa light: ',
+          msg.name,
+          msg.sender,
+          msg.unit,
+          msg.dimmer
+        )
         updateWsState()
         break
-      
+
       case 'ADD_ANSLUTA_LIGHT':
         createLight(createAnslutaLight(msg.name))
-        console.log("Add ansluta light: ", msg.name)
+        console.log('Add ansluta light: ', msg.name)
         updateWsState()
-        break;
+        break
 
       case 'PAIR_LIGHT':
         console.log('Pair light: ', msg.id)
@@ -282,25 +294,25 @@ app.ws('/control', (ws, req) => {
         break
 
       case 'REMOVE_LIGHT':
-        console.log("Should remove light", msg.id)
+        console.log('Should remove light', msg.id)
         removeLight(msg.id)
         updateWsState()
         break
-      
+
       case 'ADD_TASK':
-        console.log("Should add task", msg.name, msg.cron, msg.lights)
+        console.log('Should add task', msg.name, msg.cron, msg.lights)
         addTask(msg.name, msg.cron, msg.lights)
         updateWsState()
         break
 
       case 'TOGGLE_TASK_ENABLED':
-        console.log("Should toggle task enable state", msg.id)
+        console.log('Should toggle task enable state', msg.id)
         toggleTaskEnabled(msg.id)
         updateWsState()
         break
-      
+
       case 'REMOVE_TASK':
-        console.log("Should remove task", msg.id)
+        console.log('Should remove task', msg.id)
         removeTask(msg.id)
         updateWsState()
         break
@@ -308,27 +320,37 @@ app.ws('/control', (ws, req) => {
   })
 
   ws.on('close', arg => {
-    console.log("Closed websocket: ", arg)
+    console.log('Closed websocket: ', arg)
   })
 })
 
 let control = expressWs.getWss('/control')
 const updateWsState = () => {
-  control.clients.forEach( client => {
-      client.send(JSON.stringify({ type: 'STATE_UPDATE', lights, tasks }))
+  control.clients.forEach(client => {
+    client.send(JSON.stringify({ type: 'STATE_UPDATE', lights, tasks }))
   })
 }
 
-
-const button = (title, link) => (`<a href='${link}'>${title}</a>`)
-const onoffButtons = (title,id) => ( button(`${title} ON`, `/set/${id}/ON`) + " " + button(`${title} OFF`, `/set/${id}/OFF`) )
+const button = (title, link) => `<a href='${link}'>${title}</a>`
+const onoffButtons = (title, id) =>
+  button(`${title} ON`, `/set/${id}/ON`) +
+  ' ' +
+  button(`${title} OFF`, `/set/${id}/OFF`)
 const buttons = () => {
   let output = '<html>'
-  Object.values(lights).forEach( el => { output += `${el.name}(${el.state}) ${button('ON', `/set/${el.id}/ON`)} ${button('OFF', `/set/${el.id}/OFF`)} ${button('TOGGLE', `/toggle/${el.id}`)}</br>`})
-  return output+'</html>'
+  Object.values(lights).forEach(el => {
+    output += `${el.name}(${el.state}) ${button(
+      'ON',
+      `/set/${el.id}/ON`
+    )} ${button('OFF', `/set/${el.id}/OFF`)} ${button(
+      'TOGGLE',
+      `/toggle/${el.id}`
+    )}</br>`
+  })
+  return output + '</html>'
 }
 
-app.get('/', function (req, res) {
+app.get('/', function(req, res) {
   res.send(buttons())
   // let output = '<html>'
   // lights.forEach( el => {
@@ -342,107 +364,114 @@ app.get('/', function (req, res) {
 //   res.sendFile(__dirname + '/index.html')
 // })
 
-app.get('/reset', function (req, res) {
+app.get('/reset', function(req, res) {
   port.close(() => {
     port.open()
   })
 })
 
-app.get('/toggle/:id', function (req, res) {
+app.get('/toggle/:id', function(req, res) {
   toggleSwitch(req.params.id)
   res.send(buttons())
 })
 
-app.get('/set/:id/:state', function (req, res) {
-  if (req.params.id === "all") {
+app.get('/set/:id/:state', function(req, res) {
+  if (req.params.id === 'all') {
     // Object.values(lights).forEach (el => {
     //   setSwitchState(el.sender, el.unit, req.params.state === "ON")
     // })
-    nexaSetGroupState(1000, req.params.state === "ON")
-  }
-  else {
-    setSwitchState(req.params.id, req.params.state === "ON")
+    nexaSetGroupState(1000, req.params.state === 'ON')
+  } else {
+    setSwitchState(req.params.id, req.params.state === 'ON')
   }
   res.send(buttons())
 })
 
-app.get('/pair/:id', function (req, res) {
+app.get('/pair/:id', function(req, res) {
   pairLight(req.params.id)
   res.send(buttons())
 })
 
-app.get('/status', function (req, res) {
+app.get('/status', function(req, res) {
   res.send(JSON.stringify({ type: 'STATE_UPDATE', lights, tasks }))
 })
 
-
-
 let stdin = process.openStdin()
 
-stdin.addListener("data", function(d) {
-    // note:  d is an object, and when converted to a string it will
-    // end with a linefeed.  so we (rather crudely) account for that
-    // with toString() and then trim()
-    const msg = d.toString().trim()
-    console.log("console: [" + msg + "]")
+stdin.addListener('data', function(d) {
+  // note:  d is an object, and when converted to a string it will
+  // end with a linefeed.  so we (rather crudely) account for that
+  // with toString() and then trim()
+  const msg = d.toString().trim()
+  console.log('console: [' + msg + ']')
 
-    const parts = msg.split(' ')
-    const cmd = parts[0]
-    switch(cmd) {
-      case 'NEXA':
-        sendMessage(msg)
-        break
-      
-      case 'ANSLUTA':
-        sendMessage(msg)
-        break
-      
-      case 'status':
-        console.log(lights)
-        break
+  const parts = msg.split(' ')
+  const cmd = parts[0]
+  switch (cmd) {
+    case 'NEXA':
+      sendMessage(msg)
+      break
 
-      case 'add-nexa-light':
-        if (parts.length < 4) {
-          // parts                       1      2       3       4
-          console.log('add-nexa-light <name> <sender> <unit> [dimmer]')
-          break
-        }
-        const dimmer = parts.length >= 6 ? parts[4] === "true" : false
-        createLight(createNexaLight(parts[1], parseInt(parts[2]), parseInt(parts[3]), dimmer))
-        updateWsState()
-        break
-      
-      case 'remove-light':
-        if (parts.length != 2) {
-          console.log('remove-light <id>')
-          break
-        }
-        removeLight(parts[1])
-        updateWsState()
-        break
-      
-      case 'add-task':
-        const cronSplit = msg.split(`'`);
-        if (parts.length < 4 || cronSplit.length != 3) {
-          // parts
-          console.log(`add-task '<cron>' <light-id> <light-val> <label>`)
-          break
-        }
-        const restSplit = cronSplit[2].split(' ');
-        const lv = restSplit[1]
-        const lightValue = !isNaN(parseInt(lv)) ? parseInt(lv) : lv
-        console.log(`adding task with cron '${cronSplit[1]}', light-id ${lightId} value `, lightValue)
-        addTask(restSplit[2], cronSplit[1], [{ value: lightValue }])
-        break
+    case 'ANSLUTA':
+      sendMessage(msg)
+      break
 
-      case 'remove-task':
-        if (parts.length != 2) {
-          console.log('remove-task <id>')
-        }
-        removeTask(parts[1])
-        break
+    case 'status':
+      console.log(lights)
+      break
 
-      default:
-        console.log("Unknown command: ", cmd)
-    }
-  })
+    case 'add-nexa-light':
+      if (parts.length < 4) {
+        // parts                       1      2       3       4
+        console.log('add-nexa-light <name> <sender> <unit> [dimmer]')
+        break
+      }
+      const dimmer = parts.length >= 6 ? parts[4] === 'true' : false
+      createLight(
+        createNexaLight(
+          parts[1],
+          parseInt(parts[2]),
+          parseInt(parts[3]),
+          dimmer
+        )
+      )
+      updateWsState()
+      break
+
+    case 'remove-light':
+      if (parts.length != 2) {
+        console.log('remove-light <id>')
+        break
+      }
+      removeLight(parts[1])
+      updateWsState()
+      break
+
+    case 'add-task':
+      const cronSplit = msg.split(`'`)
+      if (parts.length < 4 || cronSplit.length != 3) {
+        // parts
+        console.log(`add-task '<cron>' <light-id> <light-val> <label>`)
+        break
+      }
+      const restSplit = cronSplit[2].split(' ')
+      const lv = restSplit[1]
+      const lightValue = !isNaN(parseInt(lv)) ? parseInt(lv) : lv
+      console.log(
+        `adding task with cron '${cronSplit[1]}', light-id ${lightId} value `,
+        lightValue
+      )
+      addTask(restSplit[2], cronSplit[1], [{ value: lightValue }])
+      break
+
+    case 'remove-task':
+      if (parts.length != 2) {
+        console.log('remove-task <id>')
+      }
+      removeTask(parts[1])
+      break
+
+    default:
+      console.log('Unknown command: ', cmd)
+  }
+})
