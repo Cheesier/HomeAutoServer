@@ -1,3 +1,3 @@
-export const createAnslutaLight = name => {
+export const createAnslutaLight = (name: string) => {
   return { name, proto: "ANSLUTA", dimmer: true, state: false };
 };

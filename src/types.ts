@@ -1,7 +1,4 @@
-export enum Proto {
-  NEXA = "NEXA",
-  ANSLUTA = "ANSLUTA"
-}
+export type Proto = "NEXA" | "ANSLUTA";
 
 export interface Light {
   id: number;
@@ -11,7 +8,13 @@ export interface Light {
   proto: Proto;
   dimmer: boolean;
   state: boolean;
-  remotes: any[];
+  remotes: NexaRemote[];
+}
+
+export interface NexaRemote {
+  proto: Proto;
+  sender: number;
+  unit: number;
 }
 
 export interface Task {

@@ -1,14 +1,24 @@
+import { Light, NexaRemote, Proto } from "./types";
+
 export const createNexaLight = (
-  name,
-  sender,
-  unit,
-  dimmer = false,
-  remotes = []
+  name: string,
+  sender: number,
+  unit: number,
+  dimmer: boolean = false,
+  remotes: NexaRemote[] = []
 ) => {
   remotes.push(nexaRemoteButton(sender, unit));
-  return { name, sender, unit, proto: "NEXA", dimmer, state: false, remotes };
+  return {
+    name,
+    sender,
+    unit,
+    proto: "NEXA",
+    dimmer,
+    state: false,
+    remotes
+  };
 };
 
-export const nexaRemoteButton = (sender, unit) => {
-  return { proto: "NEXA", sender, unit };
+export const nexaRemoteButton = (sender: number, unit: number) => {
+  return { proto: "NEXA" as Proto, sender, unit };
 };
