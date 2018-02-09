@@ -1,4 +1,4 @@
-function rateLimit(fn, delay, context) {
+export function rateLimit(fn, delay, context) {
   var queue = [],
     timer = null
 
@@ -19,5 +19,3 @@ function rateLimit(fn, delay, context) {
     }
   }
 }
-
-exports.rateLimit = rateLimit

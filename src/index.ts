@@ -1,13 +1,13 @@
 const app = require('express')()
 const server = require('http').Server(app)
 const expressWs = require('express-ws')(app)
-const nodeCron = require('node-cron')
-const config = require('./configuration')
-const { createNexaLight, nexaRemoteButton } = require('./nexa')
-const { createAnslutaLightn } = require('./ansluta')
-const lights = config.lights
-const tasks = config.tasks
+import * as nodeCron from 'node-cron'
+import * as config from './configuration'
+import { createNexaLight, nexaRemoteButton } from './nexa'
+import { createAnslutaLight } from './ansluta'
 const { rateLimit } = require('./utils')
+
+const { lights, tasks } = config
 
 app.listen(config.port, () => console.log(`listening on *:${config.port}`))
 
@@ -40,7 +40,7 @@ function setupTasks() {
                   break
 
                 case 'TOGGLE':
-                  toggleSwitch(taskLight.id, taskLight.value)
+                  toggleSwitch(taskLight.id)
                   break
 
                 default:
@@ -416,6 +416,7 @@ stdin.addListener('data', function(d) {
       sendMessage(msg)
       break
 
+    /*
     case 'status':
       console.log(lights)
       break
@@ -473,5 +474,6 @@ stdin.addListener('data', function(d) {
 
     default:
       console.log('Unknown command: ', cmd)
+    */
   }
 })
