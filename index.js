@@ -4,6 +4,7 @@ const expressWs = require('express-ws')(app)
 const nodeCron = require('node-cron')
 const config = require('./configuration')
 const { createNexaLight, nexaRemoteButton } = require('./nexa')
+const { createAnslutaLightn } = require('./ansluta')
 const lights = config.lights
 const tasks = config.tasks
 const { rateLimit } = require('./utils')
@@ -85,12 +86,14 @@ parser.on('data', data => {
       const state = parts[4].trim() === "ON" ? true : false
 
       Object.values(lights).forEach( (el, index, array) => {
-        el.remotes.forEach( remote => {
-          if (remote.sender == parts[1] && (isGroup || remote.unit == parts[2])) {
-            array[index].state = state
-            console.log(`${el.name} (${el.id}) turned ${state ? 'ON':'OFF'}`)
-          }
-        })
+        if (el.remotes) {
+          el.remotes.forEach(remote => {
+            if (remote.sender == parts[1] && (isGroup || remote.unit == parts[2])) {
+              array[index].state = state
+              console.log(`${el.name} (${el.id}) turned ${state ? 'ON' : 'OFF'}`)
+            }
+          })
+        }
       })
       updateWsState()
       break
@@ -174,11 +177,20 @@ function toggleSwitch(id) {
 }
 
 function setSwitchState(id, state) {
-  if (!lights[id]) {
+  const light = lights[id]
+  if (!light) {
     return
   }
-  const cmd = `${lights[id].proto} SET ${lights[id].sender} ${lights[id].unit} ${state ? 'ON': 'OFF'}`
-  sendMessage(cmd)
+  if (light.proto === "NEXA") {
+    const cmd = `${light.proto} SET ${light.sender} ${light.unit} ${state ? 'ON': 'OFF'}`
+    sendMessage(cmd)
+  }
+  else if (light.proto === "ANSLUTA") {
+    const cmd = `${light.proto} SET ${state ? '2' : '1'}`
+    lights[id].state = state;
+    updateWsState()
+    sendMessage(cmd)
+  }
 }
 
 function setAllSwitches(state) {
@@ -188,12 +200,22 @@ function setAllSwitches(state) {
 }
 
 function dimLight(id, lightLevel) {
-  if (!lights[id]) {
+  const light = lights[id]
+  if (!light) {
     return
   }
-  console.log('dim', lights[id], lightLevel)
-  const cmd = `${lights[id].proto} DIM ${lights[id].sender} ${lights[id].unit} ${lightLevel}`
-  sendMessage(cmd)
+  if (light.proto === "NEXA") {
+    console.log('dim NEXA', light, lightLevel)
+    const cmd = `${light.proto} DIM ${light.sender} ${light.unit} ${lightLevel}`
+    sendMessage(cmd)
+  }
+  else if (light.proto === "ANSLUTA") {
+    console.log('dim ANSLUTA', light, lightLevel)
+    const cmd = `${light.proto} SET ${lightLevel}`
+    lights[id].state = lightLevel >= 2
+    updateWsState()
+    sendMessage(cmd)
+  }
 }
 
 function nexaSetGroupState(id, state) {
@@ -247,6 +269,12 @@ app.ws('/control', (ws, req) => {
         console.log("Add nexa light: ", msg.name, msg.sender, msg.unit, msg.dimmer)
         updateWsState()
         break
+      
+      case 'ADD_ANSLUTA_LIGHT':
+        createLight(createAnslutaLight(msg.name))
+        console.log("Add ansluta light: ", msg.name)
+        updateWsState()
+        break;
 
       case 'PAIR_LIGHT':
         console.log('Pair light: ', msg.id)
@@ -362,6 +390,10 @@ stdin.addListener("data", function(d) {
     const cmd = parts[0]
     switch(cmd) {
       case 'NEXA':
+        sendMessage(msg)
+        break
+      
+      case 'ANSLUTA':
         sendMessage(msg)
         break
       
