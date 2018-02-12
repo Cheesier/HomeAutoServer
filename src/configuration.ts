@@ -1,7 +1,22 @@
+import * as fs from "fs";
 import * as nconf from "nconf";
 import { Light, LightNoId, Task, TaskNoId } from "./types";
 
-nconf.use("file", { file: "./config.json" });
+const configFilePath = "./config.json";
+
+const defaults = {
+  ComPort: "COM3",
+  WebPort: 3443,
+  password: "change me quickly please, do not enter me into any client",
+  lights: {},
+  tasks: {}
+};
+
+if (!fs.existsSync(configFilePath)) {
+  fs.writeFileSync(configFilePath, JSON.stringify(defaults, null, " "));
+}
+
+nconf.use("file", { file: configFilePath });
 nconf.load();
 
 export const lights: Map<string, Light> = JSON.parse(

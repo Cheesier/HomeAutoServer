@@ -26,7 +26,20 @@ const httpsOptions = {
 };
 const httpsServer = https.createServer(httpsOptions, app);
 
-const expressWs = expressWsR(app, httpsServer);
+const expressWs = expressWsR(app, httpsServer, {
+  wsOptions: {
+    verifyClient: (info, cb) => {
+      const pwMatch = info.req.url.match(/\?auth=(\w*)[$&]?/);
+      const pw = pwMatch ? pwMatch[1] : "";
+
+      if (pw !== config.password) {
+        console.log("Used incorrect password at protocol upgrade", pw);
+        return cb(false, 401, "Unauthorized");
+      }
+      return cb(true);
+    }
+  }
+});
 
 httpsServer.listen(config.port, () =>
   console.log(`listening on *:${config.port}`)
