@@ -1,20 +1,43 @@
-const app = require("express")();
-const server = require("http").Server(app);
-const expressWs = require("express-ws")(app);
+import * as express from "express";
+import * as expressWsR from "express-ws";
+import * as fs from "fs";
+import * as https from "https";
 import * as nodeCron from "node-cron";
+import * as SerialPort from "serialport";
 import { createAnslutaLight } from "./ansluta";
 import * as config from "./configuration";
 import { createNexaLight, nexaRemoteButton } from "./nexa";
-const { rateLimit } = require("./utils");
+import { IdType, LightIdValue, LightValue, StateType } from "./types";
+import { rateLimit } from "./utils";
 
 const { lights, tasks } = config;
+const enableWebserver = false;
 
-app.listen(config.port, () => console.log(`listening on *:${config.port}`));
+const app = express();
 
-const SerialPort = require("serialport");
+app.use((req, res, next) => {
+  (req as any).myAuthenticated = req.query.auth === config.password;
+  return next();
+});
+
+const httpsOptions = {
+  pfx: fs.readFileSync("C:cert/nodeserver.pfx"),
+  passphrase: "nodeserver"
+};
+const httpsServer = https.createServer(httpsOptions, app);
+
+const expressWs = expressWsR(app, httpsServer);
+
+httpsServer.listen(config.port, () =>
+  console.log(`listening on *:${config.port}`)
+);
+
 const Readline = SerialPort.parsers.Readline;
-const port = new SerialPort(config.comport, { baudRate: 9600, autoOpen: true });
-const parser = new Readline();
+const port = new SerialPort(config.comport.toString(), {
+  baudRate: 9600,
+  autoOpen: true
+});
+const parser = new Readline({ delimiter: Buffer.from("\n", "utf8") });
 port.pipe(parser);
 
 let cronTasks = [];
@@ -57,7 +80,7 @@ function setupTasks() {
 setupTasks();
 
 setInterval(() => {
-  if (!port.isOpen) {
+  if (!(port as any).isOpen) {
     console.log("Trying to reconnect to Arduino");
     port.open();
   }
@@ -71,21 +94,20 @@ port.on("close", () => {
   console.log("Lost connection to Arduino");
 });
 
-parser.on("data", data => {
+parser.on("data", (data: string) => {
   console.log("From arduino:", data);
   const parts = data.split(" ");
   switch (parts[0]) {
     case "NEXA-REMOTE:":
+      const sender = parseInt(parts[1], 10);
+      const unit = parseInt(parts[2], 10);
       const isGroup = parts[3] === "GROUP";
       const state = parts[4].trim() === "ON" ? true : false;
 
       Object.values(lights).forEach((el, index, array) => {
         if (el.remotes) {
           el.remotes.forEach(remote => {
-            if (
-              remote.sender === parts[1] &&
-              (isGroup || remote.unit === parts[2])
-            ) {
+            if (remote.sender === sender && (isGroup || remote.unit === unit)) {
               array[index].state = state;
               console.log(
                 `${el.name} (${el.id}) turned ${state ? "ON" : "OFF"}`
@@ -135,19 +157,18 @@ function removeLight(id) {
   delete lights[id];
 }
 
-// id, cronstring, { light-id, value }[]
-function addTask(name, cron, taskLights) {
+function addTask(name: string, cron: string, taskLights: LightIdValue[]) {
   if (!nodeCron.validate(cron)) {
     console.log("tried to add invalid cron string: ", cron);
     return;
   }
-  const value = { name, cron, taskLights, enabled: true };
+  const value = { name, cron, lights: taskLights, enabled: true };
   const resultTask = config.addTask(value);
   tasks[resultTask.id] = resultTask;
   setupTasks();
 }
 
-function toggleTaskEnabled(id) {
+function toggleTaskEnabled(id: IdType) {
   if (!tasks[id]) {
     return;
   }
@@ -157,7 +178,7 @@ function toggleTaskEnabled(id) {
   setupTasks();
 }
 
-function removeTask(id) {
+function removeTask(id: IdType) {
   if (!tasks[id]) {
     return;
   }
@@ -166,7 +187,7 @@ function removeTask(id) {
   setupTasks();
 }
 
-function toggleSwitch(id) {
+function toggleSwitch(id: IdType) {
   if (!lights[id]) {
     return;
   }
@@ -175,7 +196,7 @@ function toggleSwitch(id) {
   setSwitchState(id, newState);
 }
 
-function setSwitchState(id, state) {
+function setSwitchState(id: IdType, state: StateType) {
   const light = lights[id];
   if (!light) {
     return;
@@ -193,13 +214,13 @@ function setSwitchState(id, state) {
   }
 }
 
-function setAllSwitches(state) {
+function setAllSwitches(state: StateType) {
   Object.keys(lights).forEach(light => {
     setSwitchState(light, state);
   });
 }
 
-function dimLight(id, lightLevel) {
+function dimLight(id: IdType, lightLevel: LightValue) {
   const light = lights[id];
   if (!light) {
     return;
@@ -219,20 +240,25 @@ function dimLight(id, lightLevel) {
   }
 }
 
-function nexaSetGroupState(id, state) {
+function nexaSetGroupState(id: number, state: StateType) {
   sendMessage(`NEXA SET ${id} GROUP ${state ? "ON" : "OFF"}`);
 }
 
-function sendMessageInternal(msg) {
-  if (port.isOpen) {
+function sendMessageInternal(msg: string) {
+  if ((port as any).isOpen) {
     console.log("msg to arduino:", msg);
     port.write(msg + "\n");
   }
 }
 
-const sendMessage = rateLimit(sendMessageInternal, 200);
+const sendMessage: (msg: string) => void = rateLimit(sendMessageInternal, 200);
 
-app.ws("/control", (ws, req) => {
+(app as any).ws("/control", (ws, req) => {
+  if (!req.myAuthenticated) {
+    console.log("Atempt to login with incorrect credentials", req.query.auth);
+    ws.close();
+    return;
+  }
   ws.send(JSON.stringify({ type: "STATE_UPDATE", lights, tasks }));
 
   ws.on("message", str => {
@@ -352,51 +378,53 @@ const buttons = () => {
   return output + "</html>";
 };
 
-app.get("/", (req, res) => {
-  res.send(buttons());
-  // let output = '<html>'
-  // lights.forEach( el => {
-  //   output += `<p>${el.name}(${el.id}): ${el.state ? 'ON': 'OFF'}</p>`
-  // })
-  // output += '</html>'
-  // res.send(output)
-});
-
-// app.get('/', function (req, res) {
-//   res.sendFile(__dirname + '/index.html')
-// })
-
-app.get("/reset", (req, res) => {
-  port.close(() => {
-    port.open();
-  });
-});
-
-app.get("/toggle/:id", (req, res) => {
-  toggleSwitch(req.params.id);
-  res.send(buttons());
-});
-
-app.get("/set/:id/:state", (req, res) => {
-  if (req.params.id === "all") {
-    // Object.values(lights).forEach (el => {
-    //   setSwitchState(el.sender, el.unit, req.params.state === "ON")
+if (enableWebserver) {
+  app.get("/", (req, res) => {
+    res.send(buttons());
+    // let output = '<html>'
+    // lights.forEach( el => {
+    //   output += `<p>${el.name}(${el.id}): ${el.state ? 'ON': 'OFF'}</p>`
     // })
-    nexaSetGroupState(1000, req.params.state === "ON");
-  } else {
-    setSwitchState(req.params.id, req.params.state === "ON");
-  }
-  res.send(buttons());
-});
+    // output += '</html>'
+    // res.send(output)
+  });
 
-app.get("/pair/:id", (req, res) => {
-  pairLight(req.params.id);
-  res.send(buttons());
-});
+  // app.get('/', function (req, res) {
+  //   res.sendFile(__dirname + '/index.html')
+  // })
 
-app.get("/status", (req, res) => {
-  res.send(JSON.stringify({ type: "STATE_UPDATE", lights, tasks }));
-});
+  app.get("/reset", (req, res) => {
+    port.close(() => {
+      port.open();
+    });
+  });
+
+  app.get("/toggle/:id", (req, res) => {
+    toggleSwitch(req.params.id);
+    res.send(buttons());
+  });
+
+  app.get("/set/:id/:state", (req, res) => {
+    if (req.params.id === "all") {
+      // Object.values(lights).forEach (el => {
+      //   setSwitchState(el.sender, el.unit, req.params.state === "ON")
+      // })
+      nexaSetGroupState(1000, req.params.state === "ON");
+    } else {
+      setSwitchState(req.params.id, req.params.state === "ON");
+    }
+    res.send(buttons());
+  });
+
+  app.get("/pair/:id", (req, res) => {
+    pairLight(req.params.id);
+    res.send(buttons());
+  });
+
+  app.get("/status", (req, res) => {
+    res.send(JSON.stringify({ type: "STATE_UPDATE", lights, tasks }));
+  });
+}
 
 const stdin = process.openStdin();
 

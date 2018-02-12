@@ -1,4 +1,8 @@
-export function rateLimit(fn, delay, context) {
+export function rateLimit(
+  fn: any,
+  delay: number,
+  context?: any
+): (...args) => void {
   const queue = [];
   let timer = null;
 

@@ -1,4 +1,4 @@
-import { Light, NexaRemote, Proto } from "./types";
+import { Light, LightNoId, NexaRemote, Proto } from "./types";
 
 export const createNexaLight = (
   name: string,
@@ -16,9 +16,9 @@ export const createNexaLight = (
     dimmer,
     state: false,
     remotes
-  };
+  } as LightNoId;
 };
 
 export const nexaRemoteButton = (sender: number, unit: number) => {
-  return { proto: "NEXA" as Proto, sender, unit };
+  return { proto: "NEXA" as Proto, sender, unit } as NexaRemote;
 };

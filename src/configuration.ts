@@ -1,5 +1,5 @@
 import * as nconf from "nconf";
-import { Light, Task } from "./types";
+import { Light, LightNoId, Task, TaskNoId } from "./types";
 
 nconf.use("file", { file: "./config.json" });
 nconf.load();
@@ -10,6 +10,7 @@ export const lights: Map<string, Light> = JSON.parse(
 export const tasks: Map<string, Task> = JSON.parse(
   JSON.stringify(nconf.get("tasks"))
 );
+export const password: string = nconf.get("password");
 
 export const comport: number = nconf.get("ComPort");
 export const port: number = nconf.get("WebPort");
@@ -20,7 +21,7 @@ function load() {
   nconf.load();
 }
 
-export function addLight(light: Light) {
+export function addLight(light: LightNoId) {
   const id = nextAvailableId++;
   const resultLight = { ...light, id };
   nconf.set(`lights:${id}`, resultLight);
@@ -34,7 +35,7 @@ export function updateLight(light: Light) {
   return addLight(saneLight);
 }
 
-export function removeLight(id: number) {
+export function removeLight(id: string) {
   nconf.set(`lights:${id}`, undefined);
   console.log(`Removed light ${id}`);
   return save();
@@ -46,7 +47,7 @@ export function removeLight(id: number) {
 // }
 // value is one of number, "ON", "OFF", "TOGGLE"
 
-export function addTask(task) {
+export function addTask(task: TaskNoId) {
   const id = nextAvailableId++;
   const resultLight = { ...task, id };
   nconf.set(`tasks:${id}`, { ...task, id });
@@ -55,14 +56,16 @@ export function addTask(task) {
   return resultLight;
 }
 
-export function removeTask(id) {
+export function removeTask(id: string) {
   nconf.set(`tasks:${id}`, undefined);
   console.log(`removed task id: ${id}`);
   return save();
 }
 
-export function updateTask(task) {
-  return addTask(task);
+export function updateTask(task: Task) {
+  nconf.set(`tasks:${task.id}`, { ...task });
+  console.log(`Updated task: ${task.name || task.cron}`);
+  save();
 }
 
 function save() {

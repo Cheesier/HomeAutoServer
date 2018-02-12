@@ -1,7 +1,8 @@
 export type Proto = "NEXA" | "ANSLUTA";
 
-export interface Light {
-  id: number;
+export type StateType = boolean;
+
+export interface LightNoId {
   name: string;
   sender: number;
   unit: number;
@@ -11,16 +12,32 @@ export interface Light {
   remotes: NexaRemote[];
 }
 
+export interface Light extends LightNoId {
+  id: string;
+}
+
+export type LightValue = "ON" | "OFF" | "TOGGLE" | number;
+
+export interface LightIdValue {
+  id: number;
+  value: LightValue;
+}
+
 export interface NexaRemote {
   proto: Proto;
   sender: number;
   unit: number;
 }
 
-export interface Task {
-  id: number;
+export interface TaskNoId {
   name: string;
   cron: string;
-  lights: [{ id: string; value: number | string }];
+  lights: LightIdValue[];
   enabled: boolean;
 }
+
+export interface Task extends TaskNoId {
+  id: string;
+}
+
+export type IdType = string;
