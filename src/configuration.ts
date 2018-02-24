@@ -8,6 +8,8 @@ const defaults = {
   ComPort: "COM3",
   WebPort: 3443,
   password: "change me quickly please, do not enter me into any client",
+  pfxFile: "",
+  pfxPassword: "",
   lights: {},
   tasks: {}
 };
@@ -29,6 +31,9 @@ export const password: string = nconf.get("password");
 
 export const comport: number = nconf.get("ComPort");
 export const port: number = nconf.get("WebPort");
+
+export const pfxFile: string = nconf.get("pfxFile");
+export const pfxPassword: string = nconf.get("pfxPassword");
 
 let nextAvailableId: number = nconf.get("nextAvailableId") || 1;
 

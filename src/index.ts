@@ -21,8 +21,8 @@ app.use((req, res, next) => {
 });
 
 const httpsOptions = {
-  pfx: fs.readFileSync("C:cert/nodeserver.pfx"),
-  passphrase: "nodeserver"
+  pfx: fs.readFileSync(config.pfxFile),
+  passphrase: config.pfxPassword
 };
 const httpsServer = https.createServer(httpsOptions, app);
 
@@ -272,6 +272,7 @@ const sendMessage: (msg: string) => void = rateLimit(sendMessageInternal, 200);
     ws.close();
     return;
   }
+  console.log("Opened websocket");
   ws.send(JSON.stringify({ type: "STATE_UPDATE", lights, tasks }));
 
   ws.on("message", str => {
