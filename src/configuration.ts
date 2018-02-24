@@ -2,14 +2,23 @@ import * as fs from "fs";
 import * as nconf from "nconf";
 import { Light, LightNoId, Task, TaskNoId } from "./types";
 
+export interface Cert {
+  key: any;
+  cert: any;
+  ca: any;
+}
+
 const configFilePath = "./config.json";
 
 const defaults = {
   ComPort: "COM3",
   WebPort: 3443,
   password: "change me quickly please, do not enter me into any client",
-  pfxFile: "",
-  pfxPassword: "",
+  cert: {
+    key: "",
+    cert: "",
+    ca: ""
+  },
   lights: {},
   tasks: {}
 };
@@ -31,9 +40,23 @@ export const password: string = nconf.get("password");
 
 export const comport: number = nconf.get("ComPort");
 export const port: number = nconf.get("WebPort");
+const certPath = nconf.get("cert");
 
-export const pfxFile: string = nconf.get("pfxFile");
-export const pfxPassword: string = nconf.get("pfxPassword");
+if (
+  !certPath ||
+  !("key" in certPath) ||
+  !("cert" in certPath) ||
+  !("ca" in certPath)
+) {
+  console.log("Missing property in certPath");
+  console.log("certPath", certPath);
+}
+
+export const cert: Cert = {
+  key: fs.readFileSync(certPath.key),
+  cert: fs.readFileSync(certPath.cert),
+  ca: fs.readFileSync(certPath.ca)
+};
 
 let nextAvailableId: number = nconf.get("nextAvailableId") || 1;
 

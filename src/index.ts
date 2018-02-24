@@ -21,8 +21,7 @@ app.use((req, res, next) => {
 });
 
 const httpsOptions = {
-  pfx: fs.readFileSync(config.pfxFile),
-  passphrase: config.pfxPassword
+  ...config.cert
 };
 const httpsServer = https.createServer(httpsOptions, app);
 
