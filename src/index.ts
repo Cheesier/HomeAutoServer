@@ -116,18 +116,28 @@ parser.on("data", (data: string) => {
       const isGroup = parts[3] === "GROUP";
       const state = parts[4].trim() === "ON" ? true : false;
 
-      Object.values(lights).forEach((el, index, array) => {
-        if (el.remotes) {
-          el.remotes.forEach(remote => {
-            if (remote.sender === sender && (isGroup || remote.unit === unit)) {
-              array[index].state = state;
-              console.log(
-                `${el.name} (${el.id}) turned ${state ? "ON" : "OFF"}`
-              );
-            }
-          });
-        }
-      });
+      // Off group-button on a remote turns off all lights
+      const allOffButton = isGroup && !state;
+
+      if (allOffButton) {
+        setAllSwitches(false);
+      } else {
+        Object.values(lights).forEach((el, index, array) => {
+          if (el.remotes) {
+            el.remotes.forEach(remote => {
+              if (
+                remote.sender === sender &&
+                (isGroup || remote.unit === unit)
+              ) {
+                array[index].state = state;
+                console.log(
+                  `${el.name} (${el.id}) turned ${state ? "ON" : "OFF"}`
+                );
+              }
+            });
+          }
+        });
+      }
       updateWsState();
       break;
 
