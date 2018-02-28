@@ -1,4 +1,4 @@
-import { Light, LightNoId, NexaRemote, Proto } from "./types";
+import { Light, LightNoId, NexaRemote, Proto } from "../types";
 
 export const createNexaLight = (
   name: string,

@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as nconf from "nconf";
-import { Light, LightNoId, Task, TaskNoId } from "./types";
+import { Light, LightNoId, Scene, SceneNoId, Task, TaskNoId } from "./types";
 
 export interface Cert {
   key: any;
@@ -20,7 +20,8 @@ const defaults = {
     ca: ""
   },
   lights: {},
-  tasks: {}
+  tasks: {},
+  scenes: {}
 };
 
 if (!fs.existsSync(configFilePath)) {
@@ -30,12 +31,21 @@ if (!fs.existsSync(configFilePath)) {
 nconf.use("file", { file: configFilePath });
 nconf.load();
 
-export const lights: Map<string, Light> = JSON.parse(
+export const lightMap: Map<string, Light> = JSON.parse(
   JSON.stringify(nconf.get("lights"))
 );
-export const tasks: Map<string, Task> = JSON.parse(
+export const taskMap: Map<string, Task> = JSON.parse(
   JSON.stringify(nconf.get("tasks"))
 );
+export const sceneMap: Map<string, Scene> = JSON.parse(
+  JSON.stringify(nconf.get("scenes"))
+);
+export const getState = () => ({
+  lights: lightMap,
+  tasks: taskMap,
+  scenes: sceneMap
+});
+
 export const password: string = nconf.get("password");
 
 export const comport: number = nconf.get("ComPort");
@@ -65,8 +75,8 @@ function load() {
 }
 
 export function addLight(light: LightNoId) {
-  const id = nextAvailableId++;
-  const resultLight = { ...light, id };
+  const id = (nextAvailableId++).toString(10);
+  const resultLight: Light = { ...light, id };
   nconf.set(`lights:${id}`, resultLight);
   console.log(`Saved light '${light.name}'`);
   save();
@@ -91,12 +101,12 @@ export function removeLight(id: string) {
 // value is one of number, "ON", "OFF", "TOGGLE"
 
 export function addTask(task: TaskNoId) {
-  const id = nextAvailableId++;
-  const resultLight = { ...task, id };
-  nconf.set(`tasks:${id}`, { ...task, id });
+  const id = (nextAvailableId++).toString(10);
+  const resultTask: Task = { ...task, id };
+  nconf.set(`tasks:${id}`, resultTask);
   console.log(`Saved task: ${task.cron}`);
   save();
-  return resultLight;
+  return resultTask;
 }
 
 export function removeTask(id: string) {
@@ -108,6 +118,26 @@ export function removeTask(id: string) {
 export function updateTask(task: Task) {
   nconf.set(`tasks:${task.id}`, { ...task });
   console.log(`Updated task: ${task.name || task.cron}`);
+  save();
+}
+
+export function createScene(scene: SceneNoId) {
+  const id = (nextAvailableId++).toString(10);
+  const resultScene: Scene = { ...scene, id };
+  nconf.set(`scenes:${id}`, resultScene);
+  save();
+  return resultScene;
+}
+
+export function removeScene(id: string) {
+  nconf.set(`scenes:${id}`, undefined);
+  console.log(`removed scene id: ${id}`);
+  return save();
+}
+
+export function updateScene(scene: Scene) {
+  nconf.set(`scenes:${scene.id}`, { ...scene });
+  console.log(`Updated scene: ${scene.name}`);
   save();
 }
 
