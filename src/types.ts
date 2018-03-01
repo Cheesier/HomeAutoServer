@@ -19,7 +19,7 @@ export interface Light {
   remotes: NexaRemote[];
 }
 
-export type LightValue = "ON" | "OFF" | "TOGGLE" | number;
+export type LightValue = "ON" | "OFF" | "TOGGLE" | number | boolean;
 
 export interface LightIdValue {
   id: string;

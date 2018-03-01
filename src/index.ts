@@ -1,11 +1,10 @@
 import * as express from "express";
 import * as expressWsR from "express-ws";
-import * as fs from "fs";
 import * as https from "https";
-import * as SerialPort from "serialport";
 import * as config from "./configuration";
 import * as serial from "./serial";
 import * as tasks from "./tasks";
+import * as scenes from "./scenes";
 import * as lights from "./lights";
 import { createAnslutaLight } from "./proto/ansluta";
 import { createNexaLight, nexaRemoteButton } from "./proto/nexa";
@@ -91,6 +90,10 @@ tasks.setupTasks();
         lights.toggleSwitch(msg.id);
         break;
 
+      case "SCENE":
+        lights.triggerScene(msg.id);
+        break;
+
       case "DIM":
         lights.dimLight(msg.id, msg.lightLevel);
         updateWsState();
@@ -147,6 +150,22 @@ tasks.setupTasks();
       case "REMOVE_TASK":
         console.log("Should remove task", msg.id);
         tasks.removeTask(msg.id);
+        updateWsState();
+        break;
+
+      case "CREATE_SCENE":
+        console.log("Creating scene");
+        scenes.createScene(msg.name, msg.lights);
+        updateWsState();
+        break;
+      case "REMOVE_SCENE":
+        console.log("Removing scene");
+        scenes.removeScene(msg.id);
+        updateWsState();
+        break;
+      case "UPDATE_SCENE":
+        console.log("Updating scene");
+        scenes.updateScene(msg.id, { ...msg.scene });
         updateWsState();
         break;
     }

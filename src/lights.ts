@@ -1,8 +1,8 @@
 import * as config from "./configuration";
 import * as serial from "./serial";
-import { StateType, LightValue } from "./types";
+import { StateType, LightValue, Scene } from "./types";
 
-const { lightMap } = config;
+const { lightMap, sceneMap } = config;
 let updateWsState = null;
 
 export const init = (updateWsStateUgly: () => void) => {
@@ -37,6 +37,19 @@ export function toggleSwitch(id: string) {
   setSwitchState(id, newState);
 }
 
+export function setSwitch(id: string, state: LightValue) {
+  switch (typeof state) {
+    case "number":
+      console.log("dim", id, state);
+      dimLight(id, state);
+      break;
+    default:
+      console.log("set", id, state);
+      setSwitchState(id, state as StateType);
+      break;
+  }
+}
+
 export function setSwitchState(id: string, state: StateType) {
   const light = lightMap[id];
   if (!light) {
@@ -58,6 +71,16 @@ export function setSwitchState(id: string, state: StateType) {
 export function setAllSwitches(state: StateType) {
   Object.keys(lightMap).forEach(light => {
     setSwitchState(light, state);
+  });
+}
+
+export function triggerScene(id: string) {
+  if (!sceneMap[id]) {
+    return;
+  }
+  const scene: Scene = sceneMap[id];
+  scene.lights.forEach(light => {
+    setSwitch(light.id, light.value);
   });
 }
 
