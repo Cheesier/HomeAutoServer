@@ -2,14 +2,30 @@ type Diff<T extends string, U extends string> = ({ [P in T]: P } &
   { [P in U]: never } & { [x: string]: never })[T];
 type Omit<T, K extends keyof T> = Pick<T, Diff<keyof T, K>>;
 
+export interface Map<T> {
+  [id: string]: T | undefined;
+}
+
 export type Proto = "NEXA" | "ANSLUTA";
 
 export type StateType = boolean;
 
 export type LightNoId = Omit<Light, "id">;
 
+export type ID = string;
+
+export interface ResID {
+  id: ID;
+}
+
+export interface State {
+  lightMap: Map<Light>;
+  taskMap: Map<Task>;
+  sceneMap: Map<Scene>;
+}
+
 export interface Light {
-  id: string;
+  id: ID;
   name: string;
   sender: number;
   unit: number;
@@ -22,7 +38,7 @@ export interface Light {
 export type LightValue = "ON" | "OFF" | "TOGGLE" | number | boolean;
 
 export interface LightIdValue {
-  id: string;
+  id: ID;
   value: LightValue;
 }
 
@@ -35,7 +51,7 @@ export interface NexaRemote {
 export type TaskNoId = Omit<Task, "id">;
 
 export interface Task {
-  id: string;
+  id: ID;
   name: string;
   cron: string;
   lights: LightIdValue[];
@@ -45,7 +61,7 @@ export interface Task {
 export type SceneNoId = Omit<Scene, "id">;
 
 export interface Scene {
-  id: string;
+  id: ID;
   name: string;
   lights: LightIdValue[];
 }

@@ -57,4 +57,5 @@ Temporary Items
 # =========================
 
 dist/*
+prod/*
 config.json

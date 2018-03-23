@@ -43,14 +43,21 @@ export function setSwitch(id: string, state: LightValue) {
       console.log("dim", id, state);
       dimLight(id, state);
       break;
-    default:
-      console.log("set", id, state);
-      setSwitchState(id, state as StateType);
+    case "string":
+      if (state === "TOGGLE") {
+        toggleSwitch(id);
+        break;
+      }
+      const onOffState = state === "ON";
+      setSwitchState(id, onOffState);
+      break;
+    case "boolean":
+      setSwitchState(id, state as boolean);
       break;
   }
 }
 
-export function setSwitchState(id: string, state: StateType) {
+export function setSwitchState(id: string, state: boolean) {
   const light = lightMap[id];
   if (!light) {
     return;
