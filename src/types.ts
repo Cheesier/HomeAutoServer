@@ -19,9 +19,9 @@ export interface ResID {
 }
 
 export interface State {
-  lightMap: Map<Light>;
-  taskMap: Map<Task>;
-  sceneMap: Map<Scene>;
+  lights: Map<Light>;
+  tasks: Map<Task>;
+  scenes: Map<Scene>;
 }
 
 export interface Light {

@@ -1,6 +1,8 @@
+import { ReducerBuilder } from "redux-ts-simple";
 import * as config from "./configuration";
 import * as serial from "./serial";
 import { StateType, LightValue, Scene } from "./types";
+import * as message from "./message";
 
 const { lightMap, sceneMap } = config;
 let updateWsState = null;
@@ -115,3 +117,11 @@ export function dimLight(id: string, lightLevel: LightValue) {
 export function nexaSetGroupState(id: number, state: StateType) {
   serial.sendMessage(`NEXA SET ${id} GROUP ${state ? "ON" : "OFF"}`);
 }
+
+export const lightReducer = new ReducerBuilder({})
+  .on(message.setLight, (state, action) => {
+    console.log("setLight", action.payload);
+    setSwitch(action.payload.id, action.payload.value);
+    return state;
+  })
+  .build();

@@ -1,6 +1,14 @@
 import * as fs from "fs";
 import * as nconf from "nconf";
-import { Light, LightNoId, Scene, SceneNoId, Task, TaskNoId } from "./types";
+import {
+  Map,
+  Light,
+  LightNoId,
+  Scene,
+  SceneNoId,
+  Task,
+  TaskNoId
+} from "./types";
 
 export interface Cert {
   key: any;
@@ -31,13 +39,13 @@ if (!fs.existsSync(configFilePath)) {
 nconf.use("file", { file: configFilePath });
 nconf.load();
 
-export const lightMap: Map<string, Light> = JSON.parse(
+export const lightMap: Map<Light> = JSON.parse(
   JSON.stringify(nconf.get("lights"))
 );
-export const taskMap: Map<string, Task> = JSON.parse(
+export const taskMap: Map<Task> = JSON.parse(
   JSON.stringify(nconf.get("tasks"))
 );
-export const sceneMap: Map<string, Scene> = JSON.parse(
+export const sceneMap: Map<Scene> = JSON.parse(
   JSON.stringify(nconf.get("scenes"))
 );
 export const getState = () => ({

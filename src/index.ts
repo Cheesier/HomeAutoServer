@@ -10,6 +10,8 @@ import { createAnslutaLight } from "./proto/ansluta";
 import { createNexaLight, nexaRemoteButton } from "./proto/nexa";
 import { LightIdValue, LightValue, StateType } from "./types";
 import { rateLimit } from "./utils";
+import { store } from "./store";
+import * as message from "./message";
 
 const { lightMap, taskMap } = config;
 const enableWebserver = true;
@@ -59,11 +61,13 @@ tasks.setupTasks();
     return;
   }
   console.log("Opened websocket");
-  ws.send(JSON.stringify({ type: "STATE_UPDATE", ...config.getState() }));
+  ws.send(JSON.stringify(message.stateUpdate(config.getState())));
 
   ws.on("message", str => {
     console.log("Got ws message:", str);
     const msg = JSON.parse(str);
+    store.dispatch(msg);
+
     switch (msg.type) {
       case "STATE_REQUEST":
         ws.send(
