@@ -1,8 +1,36 @@
 import { ReducerBuilder } from "redux-ts-simple";
 import * as config from "./configuration";
 import * as serial from "./serial";
-import { StateType, LightValue, Scene } from "./types";
+import { StateType, LightValue, Scene, LightIdValue } from "./types";
 import * as message from "./message";
+import * as mqtt from "./mqtt";
+
+const listeners = [];
+
+export const onLightChange = (callback: (obj: LightIdValue) => void) => {
+  listeners.push(callback);
+};
+
+export const notifyLightChange = (obj: LightIdValue) => {
+  listeners.forEach(listener => {
+    listener(obj);
+  });
+};
+
+onLightChange(obj => {
+  const { id, value } = obj;
+  const light = lightMap[id];
+  if (!light) {
+    return;
+  }
+  const state =
+    typeof value === "number"
+      ? value > 0
+      : typeof value === "string" ? value === "ON" : value;
+  lightMap[obj.id].state = state;
+  console.log(`${light.name} (${light.id}) changed value ${value}`, typeof id);
+  mqtt.reportLightValueChange({ id, value: state });
+});
 
 const { lightMap, sceneMap } = config;
 let updateWsState = null;

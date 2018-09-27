@@ -12,6 +12,7 @@ import { LightIdValue, LightValue, StateType } from "./types";
 import { rateLimit } from "./utils";
 import { store } from "./store";
 import * as message from "./message";
+import * as mqtt from "./mqtt";
 
 const { lightMap, taskMap } = config;
 const enableWebserver = true;

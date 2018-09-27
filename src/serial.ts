@@ -2,6 +2,7 @@ import * as SerialPort from "serialport";
 import * as config from "./configuration";
 import * as lights from "./lights";
 import { rateLimit } from "./utils";
+import * as mqtt from "./mqtt";
 
 const { lightMap } = config;
 
@@ -67,6 +68,14 @@ parser.on("data", (data: string) => {
       const isGroup = parts[3] === "GROUP";
       const state = parts[4].trim() === "ON" ? true : false;
 
+      mqtt.reportRemoteButton({
+        proto: "NEXA",
+        sender,
+        unit,
+        group: isGroup,
+        state
+      });
+
       // Off group-button on a remote turns off all lights
       const allOffButton = isGroup && !state;
 
@@ -80,10 +89,7 @@ parser.on("data", (data: string) => {
                 remote.sender === sender &&
                 (isGroup || remote.unit === unit)
               ) {
-                array[index].state = state;
-                console.log(
-                  `${el.name} (${el.id}) turned ${state ? "ON" : "OFF"}`
-                );
+                lights.notifyLightChange({ id: el.id, value: state });
               }
             });
           }

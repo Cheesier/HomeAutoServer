@@ -9,7 +9,11 @@
     "no-var-requires": false,
     "interface-name": false,
     "object-literal-sort-keys": false,
-    "ordered-imports": false
+    "ordered-imports": false,
+    "eofline": false,
+    "semicolon": false,
+    "no-trailing-whitespace": false,
+    "no-consecutive-blank-lines": false
   },
   "rulesDirectory": []
 }
