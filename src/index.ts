@@ -74,7 +74,7 @@ tasks.setupTasks();
         ws.send(
           JSON.stringify({
             type: `${message.serverPrefix}STATE_UPDATE`,
-            ...config.getState()
+            payload: config.getState()
           })
         );
         break;
@@ -187,7 +187,7 @@ const updateWsState = () => {
     client.send(
       JSON.stringify({
         type: `${message.serverPrefix}STATE_UPDATE`,
-        ...config.getState()
+        payload: config.getState()
       })
     );
   });
