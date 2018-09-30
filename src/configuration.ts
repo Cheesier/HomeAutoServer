@@ -1,6 +1,8 @@
-import * as fs from "fs";
+import * as  fs from "fs";
 import * as nconf from "nconf";
 import { Light, LightNoId, Scene, SceneNoId, Task, TaskNoId } from "./types";
+
+console.log("1");
 
 export interface Cert {
   key: any;
@@ -8,7 +10,7 @@ export interface Cert {
   ca: any;
 }
 
-const configFilePath = "./config.json";
+const configFilePath = "/home/pi/HomeAutoServer/config.json";
 
 const defaults = {
   ComPort: "COM3",
@@ -24,13 +26,17 @@ const defaults = {
   scenes: {}
 };
 
+console.log("2");
+
 if (!fs.existsSync(configFilePath)) {
-  fs.writeFileSync(configFilePath, JSON.stringify(defaults, null, " "));
+	console.log("nope");
+	fs.writeFileSync(configFilePath, JSON.stringify(defaults, null, " "));
+	console.log("yeeeah");
 }
 
 nconf.use("file", { file: configFilePath });
 nconf.load();
-
+console.log("loaded");
 export const lightMap: Map<string, Light> = JSON.parse(
   JSON.stringify(nconf.get("lights"))
 );
