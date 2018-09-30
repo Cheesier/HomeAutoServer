@@ -29,10 +29,6 @@ const initMqtt = () => {
   });
 };
 
-if (mqttHost) {
-  initMqtt();
-}
-
 const sendConfiguration = () => {
   Object.values(lightMap).forEach(light => {
     const dimmerProperties = light.dimmer
@@ -54,6 +50,11 @@ const sendConfiguration = () => {
     );
   });
 };
+
+if (mqttHost) {
+  initMqtt();
+  sendConfiguration();
+}
 
 export const reportLightValueChange = (obj: {
   id: string;
