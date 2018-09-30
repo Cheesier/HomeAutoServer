@@ -7,6 +7,7 @@ import { lightMap, mqttHost } from "./configuration";
 let mqttClient: mqtt.Client | null = null;
 
 const initMqtt = () => {
+  console.log(`Connecting to ${mqttHost}`);
   mqttClient = mqtt.connect(mqttHost);
   mqttClient.subscribe("light/#", { qos: 0 });
   mqttClient.subscribe("homeassistant/status");
@@ -51,11 +52,6 @@ const sendConfiguration = () => {
   });
 };
 
-if (mqttHost) {
-  initMqtt();
-  sendConfiguration();
-}
-
 export const reportLightValueChange = (obj: {
   id: string;
   value: LightValue;
@@ -79,6 +75,7 @@ const publish = (
   opts: mqtt.IClientPublishOptions
 ) => {
   if (mqttClient) {
+    console.log("publish", topic, message);
     mqttClient.publish(topic, JSON.stringify(message), opts);
   }
 };
@@ -89,3 +86,8 @@ export const reportRemoteButton = (obj: {
 }) => {
   publish("lightremote", obj, { qos: 0, retain: false });
 };
+
+if (mqttHost) {
+  initMqtt();
+  sendConfiguration();
+}
