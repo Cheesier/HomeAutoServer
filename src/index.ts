@@ -73,7 +73,7 @@ tasks.setupTasks();
       case "STATE_REQUEST":
         ws.send(
           JSON.stringify({
-            type: "STATE_UPDATE",
+            type: `${message.serverPrefix}STATE_UPDATE`,
             ...config.getState()
           })
         );
@@ -184,7 +184,12 @@ tasks.setupTasks();
 const control = expressWs.getWss("/control");
 const updateWsState = () => {
   control.clients.forEach(client => {
-    client.send(JSON.stringify({ type: "STATE_UPDATE", ...config.getState() }));
+    client.send(
+      JSON.stringify({
+        type: `${message.serverPrefix}STATE_UPDATE`,
+        ...config.getState()
+      })
+    );
   });
 };
 
