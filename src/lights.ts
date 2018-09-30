@@ -26,7 +26,9 @@ onLightChange(obj => {
   const state =
     typeof value === "number"
       ? value > 0
-      : typeof value === "string" ? value === "ON" : value;
+      : typeof value === "string"
+        ? value === "ON"
+        : value;
   light.state = state;
   console.log(`${light.name} (${light.id}) changed value ${value}`, typeof id);
   mqtt.reportLightValueChange({ id, value: state });
@@ -150,6 +152,11 @@ export const lightReducer = new ReducerBuilder({})
   .on(message.setLight, (state, action) => {
     console.log("setLight", action.payload);
     setSwitch(action.payload.id, action.payload.value);
+    return state;
+  })
+  .on(message.toggleLight, (state, action) => {
+    console.log("toggleLight", action.payload);
+    setSwitch(action.payload.id, "TOGGLE");
     return state;
   })
   .build();
