@@ -1,11 +1,11 @@
 import { ReducerBuilder } from "redux-ts-simple";
 import * as config from "./configuration";
 import * as serial from "./serial";
-import { StateType, LightValue, Scene, LightIdValue } from "./types";
+import { StateType, LightValue, Scene, LightIdValue, LightNoId } from "./types";
 import * as message from "./message";
 import * as mqtt from "./mqtt";
 
-const listeners = [];
+const listeners: ((obj: LightIdValue) => void)[] = [];
 
 export const onLightChange = (callback: (obj: LightIdValue) => void) => {
   listeners.push(callback);
@@ -27,30 +27,30 @@ onLightChange(obj => {
     typeof value === "number"
       ? value > 0
       : typeof value === "string" ? value === "ON" : value;
-  lightMap[obj.id].state = state;
+  light.state = state;
   console.log(`${light.name} (${light.id}) changed value ${value}`, typeof id);
   mqtt.reportLightValueChange({ id, value: state });
 });
 
 const { lightMap, sceneMap } = config;
-let updateWsState = null;
+let updateWsState: any = null;
 
 export const init = (updateWsStateUgly: () => void) => {
   updateWsState = updateWsStateUgly;
 };
 
-export function createLight(light) {
+export function createLight(light: LightNoId) {
   const createdLight = config.addLight(light);
   lightMap[createdLight.id] = createdLight;
 }
 
-export function pairLight(id) {
+export function pairLight(id: string) {
   if (lightMap[id] && lightMap[id].proto === "NEXA") {
     serial.sendMessage(`NEXA PAIR ${lightMap[id].sender} ${lightMap[id].unit}`);
   }
 }
 
-export function removeLight(id) {
+export function removeLight(id: string) {
   if (!lightMap[id]) {
     return;
   }
@@ -99,7 +99,7 @@ export function setSwitchState(id: string, state: boolean) {
     serial.sendMessage(cmd);
   } else if (light.proto === "ANSLUTA") {
     const cmd = `${light.proto} SET ${state ? "2" : "1"}`;
-    lightMap[id].state = state;
+    light.state = state;
     updateWsState();
     serial.sendMessage(cmd);
   }
@@ -131,12 +131,12 @@ export function dimLight(id: string, lightLevel: LightValue) {
     const cmd = `${light.proto} DIM ${light.sender} ${
       light.unit
     } ${lightLevel}`;
-    lightMap[id].state = true;
+    light.state = true;
     serial.sendMessage(cmd);
   } else if (light.proto === "ANSLUTA") {
     console.log("dim ANSLUTA", light, lightLevel);
     const cmd = `${light.proto} SET ${lightLevel}`;
-    lightMap[id].state = lightLevel >= 2;
+    light.state = lightLevel >= 2;
     serial.sendMessage(cmd);
   }
   updateWsState();

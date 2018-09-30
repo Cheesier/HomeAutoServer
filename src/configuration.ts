@@ -22,6 +22,7 @@ const defaults = {
   ComPort: "COM3",
   WebPort: 3443,
   password: "change me quickly please, do not enter me into any client",
+  mqttHost: "",
   cert: {
     key: "",
     cert: "",
@@ -58,16 +59,12 @@ export const password: string = nconf.get("password");
 
 export const comport: number = nconf.get("ComPort");
 export const port: number = nconf.get("WebPort");
-const certPath = nconf.get("cert");
+export const mqttHost: string | undefined = nconf.get("mqttHost");
+const certPath: Cert = nconf.get("cert");
 
-if (
-  !certPath ||
-  !("key" in certPath) ||
-  !("cert" in certPath) ||
-  !("ca" in certPath)
-) {
-  console.log("Missing property in certPath");
+if (!certPath || !certPath.key || !certPath.cert || !certPath.ca) {
   console.log("certPath", certPath);
+  throw new Error("Missing property in certPath");
 }
 
 export const cert: Cert = {
