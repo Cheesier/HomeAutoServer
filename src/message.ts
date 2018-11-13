@@ -32,6 +32,10 @@ export const toggleLight = createAction<Resource.ResID>(
   `${clientPrefix}TOGGLE_LIGHT`
 );
 
+export const setAllLight = createAction<{ value: Resource.LightValue }>(
+  `${clientPrefix}SET_ALL_LIGHT`
+);
+
 interface AddNexaLightPayload {
   name: string;
   sender: number;
@@ -57,6 +61,10 @@ export const removeLight = createAction<Resource.ResID>(
   `${clientPrefix}REMOVE_LIGHT`
 );
 
+export const updateLight = createAction<Resource.Light>(
+  `${clientPrefix}UPDATE_LIGHT`
+);
+
 /*
 
   TASK
@@ -80,6 +88,10 @@ export const setTaskEnabled = createAction<SetTaskEnabledPayload>(
 
 export const removeTask = createAction<Resource.ResID>(
   `${clientPrefix}REMOVE_TASK`
+);
+
+export const updateTask = createAction<Resource.Task>(
+  `${clientPrefix}UPDATE_TASK`
 );
 
 /*

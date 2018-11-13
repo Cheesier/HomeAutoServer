@@ -17,18 +17,20 @@ export const notifyLightChange = (obj: LightIdValue) => {
   });
 };
 
+export const lightValueAsBool = (value: LightValue) =>
+  typeof value === "number"
+    ? value > 0
+    : typeof value === "string"
+      ? value === "ON"
+      : value;
+
 onLightChange(obj => {
   const { id, value } = obj;
   const light = lightMap[id];
   if (!light) {
     return;
   }
-  const state =
-    typeof value === "number"
-      ? value > 0
-      : typeof value === "string"
-        ? value === "ON"
-        : value;
+  const state = lightValueAsBool(value);
   light.state = state;
   console.log(`${light.name} (${light.id}) changed value ${value}`, typeof id);
   mqtt.reportLightValueChange({ id, value: state });
@@ -157,6 +159,26 @@ export const lightReducer = new ReducerBuilder({})
   .on(message.toggleLight, (state, action) => {
     console.log("toggleLight", action.payload);
     setSwitch(action.payload.id, "TOGGLE");
+    return state;
+  })
+  .on(message.pairLight, (state, action) => {
+    console.log("pairLight", action.payload);
+    pairLight(action.payload.id);
+    return state;
+  })
+  .on(message.setAllLight, (state, action) => {
+    console.log("setAllLight", action.payload);
+    setAllSwitches(lightValueAsBool(action.payload.value));
+    return state;
+  })
+  .on(message.updateLight, (state, action) => {
+    console.log("updateLight", action.payload);
+    config.updateLight(action.payload);
+    return state;
+  })
+  .on(message.removeLight, (state, action) => {
+    console.log("removeLight", action.payload);
+    config.removeLight(action.payload.id);
     return state;
   })
   .build();

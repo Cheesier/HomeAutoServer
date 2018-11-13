@@ -80,7 +80,9 @@ parser.on("data", (data: string) => {
       const allOffButton = isGroup && !state;
 
       if (allOffButton) {
-        lights.setAllSwitches(false);
+        setTimeout(() => {
+          lights.setAllSwitches(false);
+        }, 400);
       } else {
         Object.values(lightMap).forEach((el, index, array) => {
           if (el.remotes) {
