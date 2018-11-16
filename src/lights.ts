@@ -191,7 +191,7 @@ export function nexaAddScanRemote(lightId: string, timeout: number = 5000) {
   let remoteCleanup: () => void | undefined;
   let timer: any;
   const cleanup = () => {
-    if (!remoteCleanup) remoteCleanup();
+    if (remoteCleanup) remoteCleanup();
     clearTimeout(timer);
   };
   return new Promise((resolve, reject) => {
