@@ -65,6 +65,20 @@ export const updateLight = createAction<Resource.Light>(
   `${clientPrefix}UPDATE_LIGHT`
 );
 
+export const addScanRemote = createAction<{
+  lightId: Resource.ID;
+  timeout?: number;
+}>(`${clientPrefix}ADD_SCAN_REMOTE`);
+
+interface RemoveNexaRemotePayload {
+  lightId: Resource.ID;
+  sender: number;
+  unit: number;
+}
+export const removeNexaRemote = createAction<RemoveNexaRemotePayload>(
+  `${clientPrefix}REMOVE_REMOTE`
+);
+
 /*
 
   TASK

@@ -76,6 +76,13 @@ parser.on("data", (data: string) => {
         state
       });
 
+      lights.notifyRemoteEvent({
+        sender,
+        unit,
+        group: isGroup,
+        state
+      });
+
       // Off group-button on a remote turns off all lights
       const allOffButton = isGroup && !state;
 

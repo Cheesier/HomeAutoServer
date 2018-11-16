@@ -1,18 +1,44 @@
 import { ReducerBuilder } from "redux-ts-simple";
 import * as config from "./configuration";
 import * as serial from "./serial";
-import { StateType, LightValue, Scene, LightIdValue, LightNoId } from "./types";
+import {
+  StateType,
+  LightValue,
+  Scene,
+  LightIdValue,
+  LightNoId,
+  Light
+} from "./types";
 import * as message from "./message";
 import * as mqtt from "./mqtt";
 
-const listeners: ((obj: LightIdValue) => void)[] = [];
-
+const lightChangeListeners: ((obj: LightIdValue) => void)[] = [];
 export const onLightChange = (callback: (obj: LightIdValue) => void) => {
-  listeners.push(callback);
+  lightChangeListeners.push(callback);
+};
+export const notifyLightChange = (obj: LightIdValue) => {
+  lightChangeListeners.forEach(listener => {
+    listener(obj);
+  });
 };
 
-export const notifyLightChange = (obj: LightIdValue) => {
-  listeners.forEach(listener => {
+interface NexaRemoteButtonListener {
+  sender: number;
+  unit: number;
+  state: boolean;
+  group: boolean;
+}
+const nexaRemoteListeners: ((obj: NexaRemoteButtonListener) => void)[] = [];
+export const onRemoteEvent = (
+  callback: (obj: NexaRemoteButtonListener) => void
+) => {
+  nexaRemoteListeners.push(callback);
+  return () => {
+    nexaRemoteListeners.filter(listener => listener !== callback);
+  };
+};
+export const notifyRemoteEvent = (obj: NexaRemoteButtonListener) => {
+  nexaRemoteListeners.forEach(listener => {
     listener(obj);
   });
 };
@@ -150,6 +176,50 @@ export function nexaSetGroupState(id: number, state: StateType) {
   serial.sendMessage(`NEXA SET ${id} GROUP ${state ? "ON" : "OFF"}`);
 }
 
+export function nexaAddRemote(lightId: string, remote: Light["remotes"][0]) {
+  const light = lightMap[lightId];
+  if (!light) {
+    return;
+  }
+  return config.updateLight({
+    ...light,
+    remotes: [...light.remotes, remote]
+  });
+}
+
+export function nexaAddScanRemote(lightId: string, timeout: number = 5000) {
+  let remoteCleanup: () => void | undefined;
+  let timer: any;
+  const cleanup = () => {
+    if (!remoteCleanup) remoteCleanup();
+    clearTimeout(timer);
+  };
+  return new Promise((resolve, reject) => {
+    remoteCleanup = onRemoteEvent(remote => {
+      // Do not register group button, ignore off commands
+      if (!remote.group && remote.state) {
+        const newRemote: Light["remotes"][0] = {
+          proto: "NEXA",
+          sender: remote.sender,
+          unit: remote.unit
+        };
+        nexaAddRemote(lightId, newRemote);
+        resolve();
+      }
+    });
+    timer = setTimeout(reject, timeout);
+  })
+    .then(() => {
+      cleanup();
+      updateWsState();
+    })
+    .catch(() => {
+      console.log("nexaAddScanRemote timeout after", timeout);
+      updateWsState();
+      cleanup();
+    });
+}
+
 export const lightReducer = new ReducerBuilder({})
   .on(message.setLight, (state, action) => {
     console.log("setLight", action.payload);
@@ -179,6 +249,11 @@ export const lightReducer = new ReducerBuilder({})
   .on(message.removeLight, (state, action) => {
     console.log("removeLight", action.payload);
     config.removeLight(action.payload.id);
+    return state;
+  })
+  .on(message.addScanRemote, (state, action) => {
+    console.log("addScanRemote", action.payload);
+    nexaAddScanRemote(action.payload.lightId, action.payload.timeout);
     return state;
   })
   .build();
