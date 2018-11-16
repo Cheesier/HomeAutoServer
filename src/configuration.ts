@@ -89,8 +89,10 @@ export function addLight(light: LightNoId) {
 }
 
 export function updateLight(light: Light) {
-  const saneLight = { ...light, state: false };
-  return addLight(saneLight);
+  const copy = { ...light };
+  nconf.set(`lights:${light.id}`, copy);
+  save();
+  return copy;
 }
 
 export function removeLight(id: string) {
