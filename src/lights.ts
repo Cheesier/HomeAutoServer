@@ -235,11 +235,14 @@ export function removeNexaRemote(
 
   light.remotes = light.remotes.filter(
     remote =>
-      remote.proto !== removeItem.proto &&
-      remote.sender !== removeItem.sender &&
-      remote.unit !== removeItem.unit
+      !(
+        remote.proto === removeItem.proto &&
+        remote.sender === removeItem.sender &&
+        remote.unit === removeItem.unit
+      )
   );
   config.updateLight({ ...light });
+  updateWsState();
   return light;
 }
 
