@@ -28,13 +28,15 @@ interface NexaRemoteButtonListener {
   state: boolean;
   group: boolean;
 }
-const nexaRemoteListeners: ((obj: NexaRemoteButtonListener) => void)[] = [];
+let nexaRemoteListeners: ((obj: NexaRemoteButtonListener) => void)[] = [];
 export const onRemoteEvent = (
   callback: (obj: NexaRemoteButtonListener) => void
 ) => {
   nexaRemoteListeners.push(callback);
   return () => {
-    nexaRemoteListeners.filter(listener => listener !== callback);
+    nexaRemoteListeners = nexaRemoteListeners.filter(
+      listener => listener !== callback
+    );
   };
 };
 export const notifyRemoteEvent = (obj: NexaRemoteButtonListener) => {
@@ -181,9 +183,11 @@ export function nexaAddRemote(lightId: string, remote: Light["remotes"][0]) {
   if (!light) {
     return;
   }
+
+  light.remotes.push(remote);
+
   return config.updateLight({
-    ...light,
-    remotes: [...light.remotes, remote]
+    ...light
   });
 }
 
