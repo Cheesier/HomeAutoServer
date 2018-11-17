@@ -224,6 +224,25 @@ export function nexaAddScanRemote(lightId: string, timeout: number = 5000) {
     });
 }
 
+export function removeNexaRemote(
+  lightId: string,
+  removeItem: Light["remotes"][0]
+) {
+  const light = lightMap[lightId];
+  if (!light) {
+    return;
+  }
+
+  light.remotes = light.remotes.filter(
+    remote =>
+      remote.proto !== removeItem.proto &&
+      remote.sender !== removeItem.sender &&
+      remote.unit !== removeItem.unit
+  );
+  config.updateLight({ ...light });
+  return light;
+}
+
 export const lightReducer = new ReducerBuilder({})
   .on(message.setLight, (state, action) => {
     console.log("setLight", action.payload);
@@ -258,6 +277,15 @@ export const lightReducer = new ReducerBuilder({})
   .on(message.addScanRemote, (state, action) => {
     console.log("addScanRemote", action.payload);
     nexaAddScanRemote(action.payload.lightId, action.payload.timeout);
+    return state;
+  })
+  .on(message.removeNexaRemote, (state, action) => {
+    console.log("removeNexaRemote", action.payload);
+    removeNexaRemote(action.payload.lightId, {
+      proto: "NEXA",
+      sender: action.payload.sender,
+      unit: action.payload.unit
+    });
     return state;
   })
   .build();
