@@ -44,6 +44,8 @@ export interface NexaRemote {
   proto: Proto;
   sender: number;
   unit: number;
+  group: boolean;
+  state: boolean;
 }
 
 export type TaskNoId = Omit<Task, "id">;
