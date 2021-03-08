@@ -58,4 +58,4 @@ Temporary Items
 
 dist/*
 prod/*
-config.json
+configuration.json

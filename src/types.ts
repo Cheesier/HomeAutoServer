@@ -65,3 +65,9 @@ export interface Scene {
   name: string;
   lights: LightIdValue[];
 }
+
+export interface RemoteDevice {
+  id: string;
+  type: "WT-2" | "PBT-707";
+  name: string;
+}

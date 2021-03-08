@@ -2,9 +2,9 @@ export function rateLimit(
   fn: any,
   delay: number,
   context?: any
-): (...args) => void {
-  const queue = [];
-  let timer = null;
+): (...args: any[]) => void {
+  const queue: any[] = [];
+  let timer: any = null;
 
   function processQueue() {
     const item = queue.shift();
@@ -16,10 +16,10 @@ export function rateLimit(
     }
   }
 
-  return function limited() {
+  return function limited(this: any) {
     queue.push({
       context: context || this,
-      arguments: [].slice.call(arguments)
+      arguments: [].slice.call(arguments),
     });
     if (!timer) {
       processQueue(); // start immediately on the first invocation
